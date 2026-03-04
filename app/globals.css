@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -15,10 +15,14 @@
 
 @layer utilities {
   .text-gradient {
-    @apply bg-gradient-to-r from-ndp-navy to-ndp-gold bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-ndp-blue to-ndp-blue-mid bg-clip-text text-transparent;
   }
   .font-display {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .network-bg {
+    background-image: radial-gradient(circle, rgba(34,0,204,0.08) 1.5px, transparent 1.5px);
+    background-size: 28px 28px;
   }
   .scrollbar-hide {
     -ms-overflow-style: none;

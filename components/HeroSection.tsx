@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Sparkles, Users, Star, TrendingUp } from 'lucide-react';
+import { ArrowRight, Users, TrendingUp, Star } from 'lucide-react';
 
 export default function HeroSection() {
   const [query, setQuery] = useState('');
@@ -25,29 +25,17 @@ export default function HeroSection() {
   ];
 
   return (
-    <section className="relative bg-gradient-to-br from-ndp-navy via-ndp-navy to-[#0f1d4a] overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -right-32 w-96 h-96 bg-ndp-gold/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-16 -left-16 w-80 h-80 bg-ndp-gold/5 rounded-full blur-3xl" />
-        <div className="absolute top-0 left-1/2 w-px h-full bg-gradient-to-b from-transparent via-ndp-gold/10 to-transparent" />
-      </div>
+    <section className="relative bg-ndp-blue overflow-hidden">
+      {/* Network dot pattern */}
+      <div className="absolute inset-0 network-bg opacity-30 pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-32">
-        {/* Badge */}
-        <div className="flex justify-center mb-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-ndp-gold/15 border border-ndp-gold/30 rounded-full text-ndp-gold text-sm font-medium backdrop-blur">
-            <Sparkles size={14} />
-            Intelligenza Artificiale per il Networking Professionale
-          </div>
-        </div>
-
         {/* Headline */}
         <div className="text-center mb-6">
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
+          <h1 className="font-display text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
             Trova il professionista
             <br />
-            <span className="text-ndp-gold">giusto in secondi</span>
+            <span className="text-white/60">giusto in secondi.</span>
           </h1>
           <p className="text-white/70 text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed">
             Descrivi la tua esigenza in italiano, la nostra AI analizza la rete NDP
@@ -57,11 +45,7 @@ export default function HeroSection() {
 
         {/* AI Search Box */}
         <div className="max-w-2xl mx-auto mt-10">
-          <div className="relative bg-white rounded-2xl shadow-2xl p-2 flex gap-2">
-            <div className="absolute -top-3 left-4 bg-ndp-gold text-ndp-navy text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-              <Sparkles size={11} />
-              AI
-            </div>
+          <div className="bg-white rounded-2xl shadow-2xl p-2 flex gap-2">
             <input
               type="text"
               value={query}
@@ -72,7 +56,7 @@ export default function HeroSection() {
             />
             <button
               onClick={() => handleSearch()}
-              className="bg-ndp-navy hover:bg-ndp-navy-dark text-white px-6 py-3 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all whitespace-nowrap"
+              className="bg-ndp-text hover:bg-ndp-text/90 text-white px-6 py-3 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all whitespace-nowrap"
             >
               Cerca
               <ArrowRight size={16} />
@@ -85,7 +69,7 @@ export default function HeroSection() {
               <button
                 key={s}
                 onClick={() => handleSearch(s)}
-                className="text-xs text-white/60 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full transition-all border border-white/10"
+                className="text-xs text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full transition-all border border-white/20"
               >
                 {s}
               </button>
@@ -101,7 +85,7 @@ export default function HeroSection() {
             { icon: Star, value: '4.9/5', label: 'Soddisfazione' },
           ].map(({ icon: Icon, value, label }) => (
             <div key={label} className="text-center">
-              <Icon size={20} className="text-ndp-gold mx-auto mb-2" />
+              <Icon size={20} className="text-white/60 mx-auto mb-2" />
               <div className="text-white font-bold text-xl">{value}</div>
               <div className="text-white/50 text-xs">{label}</div>
             </div>
