@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import ProfessionalCard from '@/components/ProfessionalCard';
 import { filterProfessionals, getUniqueCities, getUniqueCategories } from '@/lib/utils';
-import { Search, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Search, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProfessionistiPage() {
@@ -21,7 +21,7 @@ export default function ProfessionistiPage() {
   return (
     <div className="min-h-screen bg-ndp-bg">
       {/* Page header */}
-      <div className="bg-ndp-navy py-16 px-4">
+      <div className="bg-ndp-blue py-16 px-4">
         <div className="max-w-7xl mx-auto">
           <h1 className="font-display text-3xl sm:text-4xl font-bold text-white mb-3">
             Directory Professionisti
@@ -45,9 +45,8 @@ export default function ProfessionistiPage() {
             </div>
             <Link
               href="/cerca"
-              className="flex items-center justify-center gap-2 bg-ndp-gold text-ndp-navy font-bold px-5 py-3 rounded-xl hover:bg-ndp-gold-light transition-all text-sm shrink-0"
+              className="flex items-center justify-center gap-2 bg-white text-ndp-blue font-bold px-5 py-3 rounded-xl hover:bg-white/90 transition-all text-sm shrink-0"
             >
-              <Sparkles size={15} />
               Usa l&apos;AI
             </Link>
           </div>
@@ -57,14 +56,14 @@ export default function ProfessionistiPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3 mb-8">
-          <div className="flex items-center gap-2 text-gray-500 text-sm">
+          <div className="flex items-center gap-2 text-ndp-muted text-sm">
             <SlidersHorizontal size={15} />
             Filtra per:
           </div>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 outline-none focus:border-ndp-navy/40 cursor-pointer shadow-sm"
+            className="bg-white border border-ndp-border rounded-xl px-3 py-2 text-sm text-ndp-text outline-none focus:border-ndp-blue/40 cursor-pointer shadow-sm"
           >
             {categories.map((c) => (
               <option key={c} value={c}>{c}</option>
@@ -73,7 +72,7 @@ export default function ProfessionistiPage() {
           <select
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 outline-none focus:border-ndp-navy/40 cursor-pointer shadow-sm"
+            className="bg-white border border-ndp-border rounded-xl px-3 py-2 text-sm text-ndp-text outline-none focus:border-ndp-blue/40 cursor-pointer shadow-sm"
           >
             {cities.map((c) => (
               <option key={c} value={c}>{c}</option>
@@ -82,12 +81,12 @@ export default function ProfessionistiPage() {
           {(category !== 'Tutte' || city !== 'Tutte' || query) && (
             <button
               onClick={() => { setCategory('Tutte'); setCity('Tutte'); setQuery(''); }}
-              className="text-xs text-ndp-navy underline underline-offset-2 hover:no-underline"
+              className="text-xs text-ndp-blue underline underline-offset-2 hover:no-underline"
             >
               Rimuovi filtri
             </button>
           )}
-          <div className="ml-auto text-sm text-gray-500 font-medium">
+          <div className="ml-auto text-sm text-ndp-muted font-medium">
             {results.length} professionist{results.length === 1 ? 'a' : 'i'} trovat{results.length === 1 ? 'a' : 'i'}
           </div>
         </div>
@@ -101,16 +100,15 @@ export default function ProfessionistiPage() {
           </div>
         ) : (
           <div className="text-center py-24">
-            <Search size={40} className="text-gray-200 mx-auto mb-4" />
-            <h3 className="font-semibold text-gray-400 mb-2">Nessun risultato</h3>
-            <p className="text-gray-300 text-sm mb-6">
+            <Search size={40} className="text-ndp-border mx-auto mb-4" />
+            <h3 className="font-semibold text-ndp-muted mb-2">Nessun risultato</h3>
+            <p className="text-ndp-muted text-sm mb-6">
               Prova a modificare i filtri o usa la ricerca AI per trovare il professionista giusto.
             </p>
             <Link
               href="/cerca"
-              className="inline-flex items-center gap-2 bg-ndp-navy text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-ndp-navy-dark transition-all"
+              className="inline-flex items-center gap-2 bg-ndp-blue text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-ndp-blue-dark transition-all"
             >
-              <Sparkles size={14} />
               Vai alla ricerca AI
             </Link>
           </div>

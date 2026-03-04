@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, Bot, User, Loader2, ArrowRight } from 'lucide-react';
+import { Send, Network, Bot, User, Loader2, ArrowRight, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import clsx from 'clsx';
 import { getProfessionalsByIds } from '@/lib/utils';
@@ -16,6 +16,8 @@ interface Message {
 interface ChatInterfaceProps {
   initialQuery?: string;
 }
+
+const STORAGE_KEY = 'ndp-chat-v1';
 
 const SUGGESTIONS = [
   'Ho bisogno di un avvocato per diritto societario a Milano',
@@ -43,6 +45,20 @@ export default function ChatInterface({ initialQuery }: ChatInterfaceProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const initialized = useRef(false);
 
+  // Load from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) setMessages(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  // Save to localStorage on messages change
+  useEffect(() => {
+    if (messages.length === 0) return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+  }, [messages]);
+
   const scrollToBottom = () => {
     const container = chatContainerRef.current;
     if (container) {
@@ -60,6 +76,11 @@ export default function ChatInterface({ initialQuery }: ChatInterfaceProps) {
       sendMessage(initialQuery);
     }
   }, [initialQuery]);
+
+  const clearChat = () => {
+    setMessages([]);
+    localStorage.removeItem(STORAGE_KEY);
+  };
 
   const extractMatchedIds = (text: string): string[] => {
     const match = text.match(/MATCHED_IDS:\[([^\]]*)\]/);
@@ -141,19 +162,30 @@ export default function ChatInterface({ initialQuery }: ChatInterfaceProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-ndp-bg">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3 bg-white shrink-0">
-        <div className="w-8 h-8 bg-ndp-navy rounded-lg flex items-center justify-center">
-          <Sparkles size={15} className="text-ndp-gold" />
+      <div className="px-6 py-4 border-b border-ndp-border flex items-center gap-3 bg-ndp-blue shrink-0">
+        <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+          <Network size={15} className="text-white" />
         </div>
         <div>
-          <h1 className="font-semibold text-ndp-navy text-sm">NDP AI Search</h1>
-          <p className="text-xs text-gray-400">Intelligenza artificiale per il networking</p>
+          <h1 className="font-display font-semibold text-white text-sm">NDP AI Search</h1>
+          <p className="text-xs text-white/60">Intelligenza artificiale per il networking</p>
         </div>
-        <div className="ml-auto flex items-center gap-1.5">
-          <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-          <span className="text-xs text-gray-400">Online</span>
+        <div className="ml-auto flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+            <span className="text-xs text-white/60">Online</span>
+          </div>
+          {messages.length > 0 && (
+            <button
+              onClick={clearChat}
+              title="Nuova conversazione"
+              className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <RotateCcw size={14} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -165,15 +197,15 @@ export default function ChatInterface({ initialQuery }: ChatInterfaceProps) {
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 animate-fade-in">
               <div className="relative mb-6">
-                <div className="absolute inset-0 bg-ndp-gold/20 rounded-3xl blur-xl" />
-                <div className="relative w-20 h-20 bg-gradient-to-br from-ndp-navy to-ndp-navy-dark rounded-3xl flex items-center justify-center shadow-lg">
-                  <Sparkles size={36} className="text-ndp-gold" />
+                <div className="absolute inset-0 bg-ndp-blue/10 rounded-3xl blur-xl" />
+                <div className="relative w-20 h-20 bg-ndp-blue rounded-3xl flex items-center justify-center shadow-lg">
+                  <Network size={36} className="text-white" />
                 </div>
               </div>
-              <h2 className="font-display text-2xl font-bold text-ndp-navy mb-2">
+              <h2 className="font-display text-2xl font-bold text-ndp-text mb-2">
                 Trova il professionista giusto
               </h2>
-              <p className="text-gray-500 text-sm max-w-md leading-relaxed mb-8">
+              <p className="text-ndp-muted text-sm max-w-md leading-relaxed mb-8">
                 Descrivi la tua esigenza in italiano naturale. L&apos;AI analizzerà la rete NDP
                 e ti presenterà i profili più adatti.
               </p>
@@ -182,9 +214,9 @@ export default function ChatInterface({ initialQuery }: ChatInterfaceProps) {
                   <button
                     key={s}
                     onClick={() => sendMessage(s)}
-                    className="text-left text-xs text-gray-600 bg-white px-4 py-3 rounded-2xl border border-gray-100 hover:border-ndp-navy/30 hover:text-ndp-navy transition-all duration-150 shadow-sm hover:shadow flex items-start gap-2"
+                    className="text-left text-xs text-ndp-text bg-white px-4 py-3 rounded-2xl border border-ndp-border hover:border-ndp-blue/40 hover:text-ndp-blue transition-all duration-150 shadow-sm hover:shadow flex items-start gap-2"
                   >
-                    <span className="text-ndp-gold shrink-0 mt-0.5 font-medium">→</span>
+                    <span className="text-ndp-blue shrink-0 mt-0.5 font-medium">→</span>
                     <span>{s}</span>
                   </button>
                 ))}
@@ -211,13 +243,13 @@ export default function ChatInterface({ initialQuery }: ChatInterfaceProps) {
                 <div
                   className={clsx(
                     'w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5',
-                    msg.role === 'user' ? 'bg-ndp-navy' : 'bg-ndp-gold/15'
+                    msg.role === 'user' ? 'bg-ndp-blue' : 'bg-ndp-blue/10'
                   )}
                 >
                   {msg.role === 'user' ? (
                     <User size={14} className="text-white" />
                   ) : (
-                    <Bot size={14} className="text-ndp-navy" />
+                    <Network size={14} className="text-ndp-blue" />
                   )}
                 </div>
 
@@ -233,14 +265,14 @@ export default function ChatInterface({ initialQuery }: ChatInterfaceProps) {
                     className={clsx(
                       'px-4 py-3 rounded-2xl text-sm leading-relaxed',
                       msg.role === 'user'
-                        ? 'bg-ndp-navy text-white rounded-tr-sm'
-                        : 'bg-gray-50 border border-gray-100 text-gray-700 rounded-tl-sm'
+                        ? 'bg-ndp-blue text-white rounded-tr-sm'
+                        : 'bg-white border border-ndp-border text-ndp-text rounded-tl-sm'
                     )}
                   >
                     {msg.content ? (
                       <div className="whitespace-pre-wrap">{renderText(msg.content)}</div>
                     ) : (
-                      <div className="flex items-center gap-2 text-gray-400">
+                      <div className="flex items-center gap-2 text-ndp-muted">
                         <Loader2 size={14} className="animate-spin" />
                         <span className="text-xs">Sto analizzando il network...</span>
                       </div>
@@ -263,7 +295,7 @@ export default function ChatInterface({ initialQuery }: ChatInterfaceProps) {
                       </div>
                       <Link
                         href="/professionisti"
-                        className="inline-flex items-center gap-1.5 text-xs text-ndp-navy/50 hover:text-ndp-navy mt-1.5 transition-colors"
+                        className="inline-flex items-center gap-1.5 text-xs text-ndp-muted hover:text-ndp-blue mt-1.5 transition-colors"
                       >
                         Vedi tutti i professionisti
                         <ArrowRight size={11} />
@@ -277,19 +309,19 @@ export default function ChatInterface({ initialQuery }: ChatInterfaceProps) {
         </div>
       </div>
 
-      {/* Premium input bar */}
-      <div className="border-t border-gray-100 bg-white px-4 py-4 shrink-0">
+      {/* Input bar */}
+      <div className="border-t border-ndp-border bg-white px-4 py-4 shrink-0">
         <div className="max-w-3xl mx-auto">
           <div
             className={clsx(
               'flex items-center gap-3 bg-white rounded-2xl px-4 py-3',
               'border-2 transition-all duration-200 shadow-sm',
               isFocused
-                ? 'border-ndp-navy/40 shadow-[0_0_0_4px_rgba(27,43,107,0.07)]'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-ndp-blue/40 shadow-[0_0_0_4px_rgba(34,0,204,0.08)]'
+                : 'border-ndp-border hover:border-ndp-blue/20'
             )}
           >
-            <Sparkles size={16} className="text-ndp-gold shrink-0" />
+            <Network size={16} className="text-ndp-blue shrink-0" />
             <input
               ref={inputRef}
               type="text"
@@ -305,7 +337,7 @@ export default function ChatInterface({ initialQuery }: ChatInterfaceProps) {
               }}
               placeholder="Descrivi la tua esigenza..."
               disabled={isLoading}
-              className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none disabled:opacity-50"
+              className="flex-1 bg-transparent text-sm text-ndp-text placeholder-ndp-muted outline-none disabled:opacity-50"
             />
             <button
               onClick={() => sendMessage()}
@@ -313,14 +345,14 @@ export default function ChatInterface({ initialQuery }: ChatInterfaceProps) {
               className={clsx(
                 'w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200',
                 input.trim() && !isLoading
-                  ? 'bg-gradient-to-br from-ndp-navy to-ndp-navy-dark text-white shadow-md hover:shadow-lg hover:scale-105 active:scale-95'
+                  ? 'bg-ndp-blue text-white shadow-md hover:bg-ndp-blue-dark hover:shadow-lg hover:scale-105 active:scale-95'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               )}
             >
               {isLoading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
             </button>
           </div>
-          <p className="text-xs text-gray-400 mt-2 text-center">
+          <p className="text-xs text-ndp-muted mt-2 text-center">
             AI powered · Risponde in italiano · Professionisti verificati NDP
           </p>
         </div>

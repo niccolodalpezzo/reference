@@ -3,12 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Sparkles } from 'lucide-react';
+import { Menu, X, Network } from 'lucide-react';
 import clsx from 'clsx';
 
 const links = [
   { href: '/', label: 'Home' },
-  { href: '/cerca', label: 'Ricerca AI', highlight: true },
   { href: '/professionisti', label: 'Professionisti' },
   { href: '/capitoli', label: 'Capitoli' },
 ];
@@ -18,17 +17,17 @@ export default function Navbar() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-ndp-border shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-lg bg-ndp-navy flex items-center justify-center">
-              <span className="text-ndp-gold font-display font-bold text-sm">N</span>
+            <div className="w-8 h-8 rounded-lg bg-ndp-blue flex items-center justify-center">
+              <Network size={16} className="text-white" />
             </div>
             <div className="leading-tight">
-              <span className="font-display font-bold text-ndp-navy text-lg">NDP</span>
-              <span className="text-ndp-gold font-bold text-lg ml-1">reference</span>
+              <span className="font-display font-bold text-ndp-blue text-lg tracking-tight">NDP</span>
+              <span className="font-display font-normal text-ndp-muted text-lg ml-1">reference</span>
             </div>
           </Link>
 
@@ -39,18 +38,21 @@ export default function Navbar() {
                 key={l.href}
                 href={l.href}
                 className={clsx(
-                  'flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                  l.highlight
-                    ? 'bg-ndp-navy text-white hover:bg-ndp-navy-dark'
-                    : pathname === l.href
-                    ? 'bg-ndp-navy/10 text-ndp-navy'
-                    : 'text-gray-600 hover:text-ndp-navy hover:bg-gray-50'
+                  'px-4 py-2 text-sm font-medium transition-all',
+                  pathname === l.href
+                    ? 'border-b-2 border-ndp-blue text-ndp-blue'
+                    : 'text-gray-600 hover:text-ndp-blue'
                 )}
               >
-                {l.highlight && <Sparkles size={14} />}
                 {l.label}
               </Link>
             ))}
+            <Link
+              href="/cerca"
+              className="ml-2 border border-ndp-blue text-ndp-blue hover:bg-ndp-blue hover:text-white rounded-lg px-4 py-1.5 text-sm font-medium transition-all"
+            >
+              Ricerca AI
+            </Link>
           </nav>
 
           {/* Mobile toggle */}
@@ -66,7 +68,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden border-t border-gray-100 bg-white px-4 py-4 space-y-1">
+        <div className="md:hidden border-t border-ndp-border bg-white px-4 py-4 space-y-1">
           {links.map((l) => (
             <Link
               key={l.href}
@@ -74,17 +76,21 @@ export default function Navbar() {
               onClick={() => setOpen(false)}
               className={clsx(
                 'flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all',
-                l.highlight
-                  ? 'bg-ndp-navy text-white'
-                  : pathname === l.href
-                  ? 'bg-ndp-navy/10 text-ndp-navy'
+                pathname === l.href
+                  ? 'bg-ndp-bg text-ndp-blue'
                   : 'text-gray-700 hover:bg-gray-50'
               )}
             >
-              {l.highlight && <Sparkles size={14} />}
               {l.label}
             </Link>
           ))}
+          <Link
+            href="/cerca"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-ndp-blue text-white"
+          >
+            Ricerca AI
+          </Link>
         </div>
       )}
     </header>
