@@ -7,6 +7,7 @@ interface ProfessionalCardProps {
   professional: Professional;
   compact?: boolean;
   highlighted?: boolean;
+  inline?: boolean;
 }
 
 const categoryColors: Record<string, string> = {
@@ -27,9 +28,19 @@ const categoryColors: Record<string, string> = {
   'Traduttore': 'bg-sky-50 text-sky-700',
 };
 
-export default function ProfessionalCard({ professional: p, compact, highlighted }: ProfessionalCardProps) {
+export default function ProfessionalCard({ professional: p, compact, highlighted, inline }: ProfessionalCardProps) {
   const initials = getInitials(p.name);
   const badgeClass = categoryColors[p.category] || 'bg-gray-100 text-gray-600';
+  const isCondensed = compact || inline;
+
+  const avatarClass = inline
+    ? 'w-9 h-9 text-xs'
+    : compact
+    ? 'w-10 h-10 text-sm'
+    : 'w-12 h-12 text-base';
+
+  const paddingClass = inline ? 'p-3' : compact ? 'p-4' : 'p-6';
+  const nameSizeClass = inline ? 'text-sm' : compact ? 'text-sm' : 'text-base';
 
   return (
     <div
@@ -38,24 +49,24 @@ export default function ProfessionalCard({ professional: p, compact, highlighted
         highlighted
           ? 'border-ndp-gold shadow-md ring-2 ring-ndp-gold/20'
           : 'border-gray-100 shadow-sm',
-        compact ? 'p-4' : 'p-6'
+        paddingClass
       )}
     >
       {/* Header */}
-      <div className="flex items-start gap-3 mb-4">
+      <div className="flex items-start gap-3 mb-3">
         <div
           className={clsx(
             'rounded-xl bg-ndp-navy flex items-center justify-center text-ndp-gold font-bold flex-shrink-0',
-            compact ? 'w-10 h-10 text-sm' : 'w-12 h-12 text-base'
+            avatarClass
           )}
         >
           {initials}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className={clsx('font-semibold text-gray-900 truncate', compact ? 'text-sm' : 'text-base')}>
+          <h3 className={clsx('font-semibold text-gray-900 truncate', nameSizeClass)}>
             {p.name}
           </h3>
-          <p className={clsx('text-gray-500 truncate', compact ? 'text-xs' : 'text-sm')}>{p.profession}</p>
+          <p className="text-xs text-gray-500 truncate">{p.profession}</p>
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
             <span className={clsx('text-xs font-medium px-2 py-0.5 rounded-full', badgeClass)}>
               {p.category}
@@ -76,12 +87,12 @@ export default function ProfessionalCard({ professional: p, compact, highlighted
       </div>
 
       {/* Bio */}
-      {!compact && (
+      {!isCondensed && (
         <p className="text-gray-500 text-xs leading-relaxed mb-4 line-clamp-2">{p.bio}</p>
       )}
 
       {/* Specialties */}
-      {!compact && (
+      {!isCondensed && (
         <div className="flex flex-wrap gap-1.5 mb-4">
           {p.specialties.slice(0, 4).map((s) => (
             <span key={s} className="text-xs bg-gray-50 text-gray-500 px-2 py-0.5 rounded-full border border-gray-100">
@@ -92,44 +103,46 @@ export default function ProfessionalCard({ professional: p, compact, highlighted
       )}
 
       {/* Stats */}
-      <div className="flex items-center gap-4 mb-4 py-3 border-y border-gray-50">
-        <div className="flex items-center gap-1.5">
-          <Award size={12} className="text-ndp-gold" />
+      <div className={clsx('flex items-center gap-3 py-2.5 border-y border-gray-50', isCondensed ? 'mb-3' : 'mb-4')}>
+        <div className="flex items-center gap-1">
+          <Award size={11} className="text-ndp-gold" />
           <span className="text-xs text-gray-600">
-            <strong className="text-gray-800">{p.yearsInBNI}</strong> anni BNI
+            <strong className="text-gray-800">{p.yearsInBNI}</strong>a
           </span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <Star size={12} className="text-ndp-gold fill-current" />
+        <div className="flex items-center gap-1">
+          <Star size={11} className="text-ndp-gold fill-current" />
           <span className="text-xs text-gray-600">
-            <strong className="text-gray-800">{p.rating}</strong>/5
+            <strong className="text-gray-800">{p.rating}</strong>
           </span>
         </div>
         <div className="text-xs text-gray-400">
-          {p.referralsGiven} referral
+          {p.referralsGiven} ref
         </div>
       </div>
 
-      {/* Contacts */}
-      <div className={clsx('space-y-1.5', compact ? 'hidden' : '')}>
-        <a
-          href={`tel:${p.phone}`}
-          className="flex items-center gap-2 text-xs text-gray-500 hover:text-ndp-navy transition-colors"
-        >
-          <Phone size={11} className="text-ndp-navy shrink-0" />
-          {p.phone}
-        </a>
-        <a
-          href={`mailto:${p.email}`}
-          className="flex items-center gap-2 text-xs text-gray-500 hover:text-ndp-navy transition-colors"
-        >
-          <Mail size={11} className="text-ndp-navy shrink-0" />
-          {p.email}
-        </a>
-      </div>
+      {/* Contacts (full view) */}
+      {!isCondensed && (
+        <div className="space-y-1.5">
+          <a
+            href={`tel:${p.phone}`}
+            className="flex items-center gap-2 text-xs text-gray-500 hover:text-ndp-navy transition-colors"
+          >
+            <Phone size={11} className="text-ndp-navy shrink-0" />
+            {p.phone}
+          </a>
+          <a
+            href={`mailto:${p.email}`}
+            className="flex items-center gap-2 text-xs text-gray-500 hover:text-ndp-navy transition-colors"
+          >
+            <Mail size={11} className="text-ndp-navy shrink-0" />
+            {p.email}
+          </a>
+        </div>
+      )}
 
-      {/* Compact contact buttons */}
-      {compact && (
+      {/* Condensed contact buttons (compact + inline) */}
+      {isCondensed && (
         <div className="flex gap-2">
           <a
             href={`tel:${p.phone}`}
