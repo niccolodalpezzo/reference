@@ -1,6 +1,9 @@
 import { WizardProfile } from './types';
 
 export const demoMarcoProfile: WizardProfile = {
+  firstName: 'Marco',
+  lastName: 'Mastella',
+  photoUrl: '',
   businessName: 'Studio Legale Mastella',
   yearsExperience: 12,
   cities: ['Milano', 'Monza'],
