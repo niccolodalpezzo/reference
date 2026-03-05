@@ -72,6 +72,9 @@ export interface ChatMessage {
 }
 
 export interface WizardProfile {
+  firstName: string;
+  lastName: string;
+  photoUrl: string;
   businessName: string;
   yearsExperience: number;
   cities: string[];

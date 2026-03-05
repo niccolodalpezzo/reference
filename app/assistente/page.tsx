@@ -1,43 +1,71 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ChatInterface from '@/components/ChatInterface';
-import TopProfessionisti from '@/components/TopProfessionisti';
-import { ShieldCheck, Sparkles, Loader2 } from 'lucide-react';
+import ChatSidebar from '@/components/ChatSidebar';
+import ProfessionalDrawer from '@/components/ProfessionalDrawer';
+import { Professional } from '@/lib/types';
+import { Sparkles, Loader2, PanelRightOpen, PanelRightClose } from 'lucide-react';
 
 function AssistenteContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || undefined;
+  const [selectedPro, setSelectedPro] = useState<Professional | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const handleOpenProfessional = useCallback((pro: Professional) => {
+    setSelectedPro(pro);
+  }, []);
 
   return (
-    <>
-      {/* Trust layer + chat */}
-      <div className="bg-ndp-blue py-10 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 text-white/80 text-xs font-medium px-3 py-1.5 rounded-full mb-4">
-            <ShieldCheck size={12} />
+    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-white">
+      {/* Professional drawer */}
+      {selectedPro && (
+        <ProfessionalDrawer
+          professional={selectedPro}
+          onClose={() => setSelectedPro(null)}
+        />
+      )}
+
+      {/* Main chat area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Trust banner */}
+        <div className="bg-ndp-blue/95 px-5 py-2 flex items-center justify-between shrink-0">
+          <p className="text-[11px] text-white/70 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
             Professionisti verificati nella rete BNI — ogni risposta è basata su profili reali
-          </div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-white mb-2">
-            Assistente AI
-          </h1>
-          <p className="text-white/60 text-sm">
-            Descrivi la tua esigenza in italiano naturale. Nessun filtro, solo il professionista giusto.
           </p>
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors md:flex hidden"
+            title={sidebarOpen ? 'Chiudi sidebar' : 'Apri sidebar'}
+          >
+            {sidebarOpen ? <PanelRightClose size={15} /> : <PanelRightOpen size={15} />}
+          </button>
+        </div>
+
+        {/* Chat */}
+        <div className="flex-1 min-h-0">
+          <ChatInterface
+            initialQuery={initialQuery}
+            onOpenProfessional={handleOpenProfessional}
+          />
         </div>
       </div>
 
-      <div className="bg-white min-h-[500px]" style={{ height: 'calc(100vh - 400px)', minHeight: 480 }}>
-        <ChatInterface initialQuery={initialQuery} />
-      </div>
-
-      {/* Top professionisti del mese */}
-      <TopProfessionisti
-        title="Top Professionisti del Mese"
-        subtitle="I migliori della rete NDP in questo momento — pronti a ricevere la tua richiesta."
-      />
-    </>
+      {/* Sidebar — desktop only */}
+      {sidebarOpen && (
+        <div className="hidden md:flex w-80 shrink-0">
+          <ChatSidebar
+            onOpenProfessional={handleOpenProfessional}
+            onNewChat={() => {
+              // Could clear current chat
+            }}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -45,7 +73,7 @@ export default function AssistentePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-ndp-bg">
+        <div className="h-[calc(100vh-64px)] flex items-center justify-center bg-white">
           <div className="text-center">
             <div className="w-14 h-14 bg-ndp-blue rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Sparkles size={22} className="text-white animate-pulse" />

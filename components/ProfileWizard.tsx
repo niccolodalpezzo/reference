@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import AiCopilotButton from './AiCopilotButton';
-import { ChevronDown, ChevronUp, CheckCircle2, Circle, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, CheckCircle2, Circle, Plus, Trash2, Camera, User, Sparkles, Wand2, ListChecks, FileText, MessageSquare } from 'lucide-react';
 import { WizardProfile } from '@/lib/types';
 import { demoMarcoProfile } from '@/lib/memberData';
 
@@ -58,6 +58,7 @@ function TextareaField({
   fieldName,
   placeholder,
   rows = 4,
+  aiActions,
 }: {
   label: string;
   value: string;
@@ -66,6 +67,7 @@ function TextareaField({
   fieldName: string;
   placeholder?: string;
   rows?: number;
+  aiActions?: { label: string; icon: React.ReactNode; action: string }[];
 }) {
   return (
     <div>
@@ -85,6 +87,21 @@ function TextareaField({
         placeholder={placeholder}
         className="w-full px-4 py-3 border border-ndp-border rounded-xl text-sm text-ndp-text placeholder-ndp-muted focus:outline-none focus:border-ndp-blue/50 focus:ring-1 focus:ring-ndp-blue/20 transition-all resize-none"
       />
+      {/* Extra AI actions */}
+      {aiActions && value.trim() && (
+        <div className="flex flex-wrap gap-1.5 mt-1.5">
+          {aiActions.map((a) => (
+            <AiCopilotButton
+              key={a.action}
+              section={section}
+              fieldName={a.action}
+              currentValue={value}
+              onResult={onChange}
+              label={a.label}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -172,6 +189,65 @@ function TagsField({
   );
 }
 
+function PhotoUpload({ photoUrl, onChange }: { photoUrl: string; onChange: (url: string) => void }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onChange(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-5">
+      <div className="relative group">
+        <div className="w-24 h-24 rounded-2xl bg-ndp-bg border-2 border-dashed border-ndp-border overflow-hidden flex items-center justify-center">
+          {photoUrl ? (
+            <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
+          ) : (
+            <User size={32} className="text-ndp-muted/40" />
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="absolute -bottom-1.5 -right-1.5 w-8 h-8 bg-ndp-blue text-white rounded-xl flex items-center justify-center shadow-md hover:bg-ndp-blue-dark transition-all"
+        >
+          <Camera size={14} />
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+      </div>
+      <div>
+        <p className="text-sm font-medium text-ndp-text mb-0.5">Foto profilo</p>
+        <p className="text-[11px] text-ndp-muted leading-snug">
+          Carica una foto professionale.<br />
+          JPG o PNG, max 2MB.
+        </p>
+        {photoUrl && (
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="text-[11px] text-red-500 hover:underline mt-1"
+          >
+            Rimuovi foto
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ProfileWizard({ onSave }: { onSave?: (profile: WizardProfile) => void }) {
   const [profile, setProfile] = useState<WizardProfile>(demoMarcoProfile);
   const [openSection, setOpenSection] = useState<string>('identity');
@@ -188,7 +264,7 @@ export default function ProfileWizard({ onSave }: { onSave?: (profile: WizardPro
 
   const isSectionComplete = (id: string): boolean => {
     switch (id) {
-      case 'identity': return !!(profile.businessName && profile.mainServices.length > 0);
+      case 'identity': return !!(profile.firstName && profile.lastName && profile.businessName && profile.mainServices.length > 0);
       case 'whatIDo': return !!(profile.typicalCases && profile.triggerPhrases.length > 0);
       case 'gains': return !!(profile.goals && profile.achievements);
       case 'idealClient': return !!(profile.idealClientProfile && profile.topClients.length > 0);
@@ -216,7 +292,7 @@ export default function ProfileWizard({ onSave }: { onSave?: (profile: WizardPro
           <span className="text-sm font-semibold text-ndp-text">Completamento profilo</span>
           <span className="text-sm font-bold text-ndp-gold-dark">{completionPct}%</span>
         </div>
-        <div className="h-2 bg-ndp-bg rounded-full overflow-hidden">
+        <div className="h-2.5 bg-ndp-bg rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-ndp-gold to-ndp-gold-dark rounded-full transition-all duration-500"
             style={{ width: `${completionPct}%` }}
@@ -225,6 +301,34 @@ export default function ProfileWizard({ onSave }: { onSave?: (profile: WizardPro
         <p className="text-xs text-ndp-muted mt-2">
           {completedSections}/{SECTIONS.length} sezioni completate — più completo il profilo, più referral ricevi.
         </p>
+      </div>
+
+      {/* Photo + Name card (always visible) */}
+      <div className="bg-white rounded-2xl border border-ndp-border p-6 shadow-sm space-y-5">
+        <div className="flex items-center gap-2 mb-1">
+          <User size={15} className="text-ndp-blue" />
+          <h3 className="font-semibold text-ndp-text text-sm">Dati personali</h3>
+        </div>
+
+        <PhotoUpload
+          photoUrl={profile.photoUrl}
+          onChange={(url) => set('photoUrl', url)}
+        />
+
+        <div className="grid grid-cols-2 gap-4">
+          <InputField
+            label="Nome"
+            value={profile.firstName}
+            onChange={(v) => set('firstName', v)}
+            placeholder="Marco"
+          />
+          <InputField
+            label="Cognome"
+            value={profile.lastName}
+            onChange={(v) => set('lastName', v)}
+            placeholder="Mastella"
+          />
+        </div>
       </div>
 
       {/* Sections */}
@@ -260,6 +364,10 @@ export default function ProfileWizard({ onSave }: { onSave?: (profile: WizardPro
                     fieldName="Casi tipici"
                     placeholder="Descrivi i casi più frequenti che risolvi..."
                     rows={5}
+                    aiActions={[
+                      { label: 'Genera esempi', icon: <ListChecks size={11} />, action: 'Genera esempi concreti di casi tipici' },
+                      { label: 'Rendi più chiaro', icon: <FileText size={11} />, action: 'Rendi il testo più chiaro e orientato ai referral' },
+                    ]}
                   />
                   <TagsField
                     label="Trigger phrases (parole che identificano un tuo cliente ideale)"
@@ -267,13 +375,21 @@ export default function ProfileWizard({ onSave }: { onSave?: (profile: WizardPro
                     onChange={(v) => set('triggerPhrases', v)}
                     placeholder="Es. contratto, acquisizione, marchio..."
                   />
+                  <div className="bg-ndp-blue/5 rounded-xl p-4 border border-ndp-blue/10">
+                    <div className="flex items-start gap-2">
+                      <Sparkles size={13} className="text-ndp-blue mt-0.5 shrink-0" />
+                      <div className="text-xs text-ndp-muted leading-relaxed">
+                        <span className="font-semibold text-ndp-blue">Suggerimento AI:</span> Le trigger phrases aiutano i colleghi della rete a riconoscerti come il professionista giusto. Più sono specifiche e concrete, più referral qualificati ricevi.
+                      </div>
+                    </div>
+                  </div>
                 </>
               )}
 
               {section.id === 'gains' && (
                 <>
-                  <TextareaField label="Goals (obiettivi)" value={profile.goals} onChange={(v) => set('goals', v)} section="gains" fieldName="Goals" placeholder="Cosa vuoi raggiungere nei prossimi 12 mesi?" />
-                  <TextareaField label="Achievements (risultati)" value={profile.achievements} onChange={(v) => set('achievements', v)} section="gains" fieldName="Achievements" placeholder="I tuoi risultati più importanti..." />
+                  <TextareaField label="Goals (obiettivi)" value={profile.goals} onChange={(v) => set('goals', v)} section="gains" fieldName="Goals" placeholder="Cosa vuoi raggiungere nei prossimi 12 mesi?" aiActions={[{ label: 'Sintetizza', icon: <Wand2 size={11} />, action: 'Sintetizza gli obiettivi in modo conciso e memorabile' }]} />
+                  <TextareaField label="Achievements (risultati)" value={profile.achievements} onChange={(v) => set('achievements', v)} section="gains" fieldName="Achievements" placeholder="I tuoi risultati più importanti..." aiActions={[{ label: 'Rendi più convincente', icon: <MessageSquare size={11} />, action: 'Rendi i risultati più convincenti con numeri e impatto' }]} />
                   <TextareaField label="Interests (interessi)" value={profile.interests} onChange={(v) => set('interests', v)} section="gains" fieldName="Interests" rows={3} placeholder="Cosa ti appassiona fuori dal lavoro?" />
                   <TextareaField label="Networks (reti e associazioni)" value={profile.networks} onChange={(v) => set('networks', v)} section="gains" fieldName="Networks" rows={3} placeholder="A quali network/associazioni appartieni?" />
                   <TextareaField label="Skills (competenze distintive)" value={profile.skills} onChange={(v) => set('skills', v)} section="gains" fieldName="Skills" rows={3} placeholder="Cosa sai fare meglio di altri?" />
@@ -289,46 +405,19 @@ export default function ProfileWizard({ onSave }: { onSave?: (profile: WizardPro
                     section="idealClient"
                     fieldName="Profilo cliente ideale"
                     rows={4}
-                    placeholder="Chi è il tuo cliente ideale? Settore, dimensione, area geografica..."
+                    placeholder="Chi è il tuo cliente ideale? Settore, dimensione, area..."
+                    aiActions={[
+                      { label: 'Crea profilo dettagliato', icon: <ListChecks size={11} />, action: 'Crea un profilo cliente ideale dettagliato con criteri di qualificazione' },
+                    ]}
                   />
                   <div>
-                    <label className="block text-sm font-medium text-ndp-text mb-3">Top 3 clienti tipo (esempi)</label>
+                    <label className="block text-sm font-medium text-ndp-text mb-3">Top 3 clienti tipo</label>
                     <div className="space-y-3">
                       {[0, 1, 2].map((i) => (
                         <div key={i} className="grid grid-cols-3 gap-2">
-                          <input
-                            type="text"
-                            value={profile.topClients[i]?.sector ?? ''}
-                            onChange={(e) => {
-                              const clients = [...profile.topClients];
-                              clients[i] = { ...(clients[i] ?? { sector: '', area: '', work: '' }), sector: e.target.value };
-                              set('topClients', clients);
-                            }}
-                            placeholder="Settore"
-                            className="px-3 py-2 border border-ndp-border rounded-lg text-xs text-ndp-text placeholder-ndp-muted focus:outline-none focus:border-ndp-blue/50"
-                          />
-                          <input
-                            type="text"
-                            value={profile.topClients[i]?.area ?? ''}
-                            onChange={(e) => {
-                              const clients = [...profile.topClients];
-                              clients[i] = { ...(clients[i] ?? { sector: '', area: '', work: '' }), area: e.target.value };
-                              set('topClients', clients);
-                            }}
-                            placeholder="Area"
-                            className="px-3 py-2 border border-ndp-border rounded-lg text-xs text-ndp-text placeholder-ndp-muted focus:outline-none focus:border-ndp-blue/50"
-                          />
-                          <input
-                            type="text"
-                            value={profile.topClients[i]?.work ?? ''}
-                            onChange={(e) => {
-                              const clients = [...profile.topClients];
-                              clients[i] = { ...(clients[i] ?? { sector: '', area: '', work: '' }), work: e.target.value };
-                              set('topClients', clients);
-                            }}
-                            placeholder="Tipo di lavoro svolto"
-                            className="px-3 py-2 border border-ndp-border rounded-lg text-xs text-ndp-text placeholder-ndp-muted focus:outline-none focus:border-ndp-blue/50"
-                          />
+                          <input type="text" value={profile.topClients[i]?.sector ?? ''} onChange={(e) => { const clients = [...profile.topClients]; clients[i] = { ...(clients[i] ?? { sector: '', area: '', work: '' }), sector: e.target.value }; set('topClients', clients); }} placeholder="Settore" className="px-3 py-2 border border-ndp-border rounded-lg text-xs text-ndp-text placeholder-ndp-muted focus:outline-none focus:border-ndp-blue/50" />
+                          <input type="text" value={profile.topClients[i]?.area ?? ''} onChange={(e) => { const clients = [...profile.topClients]; clients[i] = { ...(clients[i] ?? { sector: '', area: '', work: '' }), area: e.target.value }; set('topClients', clients); }} placeholder="Area" className="px-3 py-2 border border-ndp-border rounded-lg text-xs text-ndp-text placeholder-ndp-muted focus:outline-none focus:border-ndp-blue/50" />
+                          <input type="text" value={profile.topClients[i]?.work ?? ''} onChange={(e) => { const clients = [...profile.topClients]; clients[i] = { ...(clients[i] ?? { sector: '', area: '', work: '' }), work: e.target.value }; set('topClients', clients); }} placeholder="Tipo lavoro" className="px-3 py-2 border border-ndp-border rounded-lg text-xs text-ndp-text placeholder-ndp-muted focus:outline-none focus:border-ndp-blue/50" />
                         </div>
                       ))}
                     </div>
@@ -338,53 +427,23 @@ export default function ProfileWizard({ onSave }: { onSave?: (profile: WizardPro
 
               {section.id === 'references' && (
                 <>
-                  <TextareaField
-                    label="Buona referenza (come mi presenteresti?)"
-                    value={profile.goodReference}
-                    onChange={(v) => set('goodReference', v)}
-                    section="references"
-                    fieldName="Buona referenza"
-                    rows={4}
-                    placeholder="La migliore referenza che puoi darmi è..."
-                  />
-                  <TextareaField
-                    label="Referenza da evitare"
-                    value={profile.badReference}
-                    onChange={(v) => set('badReference', v)}
-                    section="references"
-                    fieldName="Referenza da evitare"
-                    rows={3}
-                    placeholder="Non ho bisogno di referenze per..."
-                  />
-                  <TextareaField
-                    label="Come posso aiutare la rete"
-                    value={profile.howHelp}
-                    onChange={(v) => set('howHelp', v)}
-                    section="references"
-                    fieldName="Come aiuto la rete"
-                    rows={3}
-                    placeholder="Cosa offro ai colleghi BNI che portano referral..."
-                  />
-                  <TagsField
-                    label="Altre fonti di referral (fuori BNI)"
-                    values={profile.otherSources ? [profile.otherSources] : []}
-                    onChange={(v) => set('otherSources', v.join(', '))}
-                    placeholder="Aggiungi fonte..."
-                  />
+                  <TextareaField label="Buona referenza" value={profile.goodReference} onChange={(v) => set('goodReference', v)} section="references" fieldName="Buona referenza" rows={4} placeholder="La migliore referenza che puoi darmi è..." aiActions={[{ label: 'Crea script referral', icon: <MessageSquare size={11} />, action: 'Crea uno script di referral che i colleghi possano usare facilmente' }]} />
+                  <TextareaField label="Referenza da evitare" value={profile.badReference} onChange={(v) => set('badReference', v)} section="references" fieldName="Referenza da evitare" rows={3} placeholder="Non ho bisogno di referenze per..." />
+                  <TextareaField label="Come posso aiutare la rete" value={profile.howHelp} onChange={(v) => set('howHelp', v)} section="references" fieldName="Come aiuto la rete" rows={3} placeholder="Cosa offro ai colleghi BNI..." />
                 </>
               )}
 
               {section.id === 'powerTeam' && (
                 <>
-                  <TagsField
-                    label="Power Team (figure complementari)"
-                    values={profile.powerTeam}
-                    onChange={(v) => set('powerTeam', v)}
-                    placeholder="Es. Commercialista, Consulente finanziario..."
-                  />
-                  <p className="text-xs text-ndp-muted">
-                    Il tuo power team è composto da professionisti che si rivolgono agli stessi clienti con servizi complementari.
-                  </p>
+                  <TagsField label="Power Team (figure complementari)" values={profile.powerTeam} onChange={(v) => set('powerTeam', v)} placeholder="Es. Commercialista, Consulente finanziario..." />
+                  <div className="bg-ndp-blue/5 rounded-xl p-4 border border-ndp-blue/10">
+                    <div className="flex items-start gap-2">
+                      <Sparkles size={13} className="text-ndp-blue mt-0.5 shrink-0" />
+                      <div className="text-xs text-ndp-muted leading-relaxed">
+                        <span className="font-semibold text-ndp-blue">Power Team:</span> sono professionisti che si rivolgono ai tuoi stessi clienti con servizi complementari. Collaborando attivamente, generare referral diventa naturale.
+                      </div>
+                    </div>
+                  </div>
                 </>
               )}
 
@@ -396,7 +455,10 @@ export default function ProfileWizard({ onSave }: { onSave?: (profile: WizardPro
                   section="personal"
                   fieldName="Info personali"
                   rows={5}
-                  placeholder="Raccontati: cosa fai nel tempo libero, perché hai scelto questa professione, cosa ti rende unico..."
+                  placeholder="Raccontati: cosa fai nel tempo libero, perché hai scelto questa professione..."
+                  aiActions={[
+                    { label: 'Rendi più memorabile', icon: <Wand2 size={11} />, action: 'Rendi le info personali più memorabili e simpatiche per il networking' },
+                  ]}
                 />
               )}
             </div>
@@ -405,10 +467,10 @@ export default function ProfileWizard({ onSave }: { onSave?: (profile: WizardPro
       ))}
 
       {/* Save button */}
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-3">
         <button
           onClick={handleSave}
-          className="inline-flex items-center gap-2 bg-ndp-blue text-white font-bold px-8 py-3 rounded-xl hover:bg-ndp-blue-dark transition-all text-sm"
+          className="inline-flex items-center gap-2 bg-ndp-blue text-white font-bold px-8 py-3 rounded-xl hover:bg-ndp-blue-dark transition-all text-sm shadow-md"
         >
           {saved ? <CheckCircle2 size={16} /> : null}
           {saved ? 'Salvato!' : 'Salva profilo'}
