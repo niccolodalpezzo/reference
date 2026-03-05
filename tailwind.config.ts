@@ -9,14 +9,17 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        'ndp-blue':      '#2200CC',
-        'ndp-blue-dark': '#1600A8',
-        'ndp-blue-mid':  '#6644EE',
-        'ndp-bg':        '#F5F4FF',
-        'ndp-surface':   '#FFFFFF',
-        'ndp-border':    '#E8E5FF',
-        'ndp-text':      '#0D0A2E',
-        'ndp-muted':     '#7370A0',
+        'ndp-blue':       '#2200CC',
+        'ndp-blue-dark':  '#1600A8',
+        'ndp-blue-mid':   '#6644EE',
+        'ndp-bg':         '#F5F4FF',
+        'ndp-surface':    '#FFFFFF',
+        'ndp-border':     '#E8E5FF',
+        'ndp-text':       '#0D0A2E',
+        'ndp-muted':      '#7370A0',
+        'ndp-gold':       '#C9A84C',
+        'ndp-gold-light': '#F0E4B0',
+        'ndp-gold-dark':  '#A68830',
       },
       fontFamily: {
         sans:    ['Inter', 'sans-serif'],
