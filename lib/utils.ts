@@ -46,3 +46,25 @@ export function getInitials(name: string): string {
 export function formatReferrals(n: number): string {
   return n > 200 ? `${n}+ referral` : `${n} referral`;
 }
+
+export function getTopProfessionisti(limit = 8): Professional[] {
+  return [...professionals]
+    .filter((p) => p.monthScore !== undefined)
+    .sort((a, b) => (b.monthScore ?? 0) - (a.monthScore ?? 0))
+    .slice(0, limit);
+}
+
+export function getAlertMembers(): Professional[] {
+  return professionals.filter((p) => (p.openRequests ?? 0) > 0);
+}
+
+export function daysSince(dateStr: string): number {
+  const d = new Date(dateStr);
+  const now = new Date();
+  return Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+export function formatDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
