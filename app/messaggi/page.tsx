@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Conversation } from '@/lib/types';
-import { getConversations } from '@/lib/storage/conversations';
+import { getConversations, Conversation } from '@/lib/db/conversations';
 import { useAuth } from '@/context/AuthContext';
 import AuthGuard from '@/components/AuthGuard';
 import ConversationList from '@/components/messaggi/ConversationList';
@@ -22,8 +21,11 @@ function MessaggiContent() {
   const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
 
-  const load = useCallback(() => {
-    if (user) setConversations(getConversations(user.id));
+  const load = useCallback(async () => {
+    if (user) {
+      const convs = await getConversations(user.id);
+      setConversations(convs);
+    }
   }, [user]);
 
   useEffect(() => {
@@ -34,7 +36,6 @@ function MessaggiContent() {
 
   return (
     <div className="h-[calc(100vh-64px)] flex overflow-hidden">
-      {/* Left: conversation list (full width on mobile, 320px on desktop) */}
       <div className="w-full md:w-80 shrink-0 h-full">
         <ConversationList
           conversations={conversations}
@@ -42,8 +43,6 @@ function MessaggiContent() {
           onSelect={(id) => router.push(`/messaggi/${id}`)}
         />
       </div>
-
-      {/* Right: empty state on desktop */}
       <div className="hidden md:flex flex-1 h-full">
         <EmptyConversation />
       </div>

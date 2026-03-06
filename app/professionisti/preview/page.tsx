@@ -13,7 +13,7 @@ function getInitials(name: string) {
 
 function PreviewContent() {
   const { user } = useAuth();
-  const professional = user?.professionalId ? getProfessionalById(user.professionalId) : null;
+  const professional = user?.professional_id ? getProfessionalById(user.professional_id) : null;
   const wizard = demoMarcoProfile;
 
   const name = professional?.name ?? user?.name ?? 'Marco Mastella';

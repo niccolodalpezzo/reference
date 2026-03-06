@@ -1,6 +1,6 @@
 'use client';
 
-import { Message } from '@/lib/types';
+import { Message } from '@/lib/db/messages';
 import { Check, CheckCheck, Paperclip } from 'lucide-react';
 import clsx from 'clsx';
 import ReferenceCard from './ReferenceCard';
@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function MessageBubble({ message, isOwn, showAvatar = true }: Props) {
-  const time = new Date(message.timestamp).toLocaleTimeString('it-IT', {
+  const time = new Date(message.sent_at).toLocaleTimeString('it-IT', {
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -27,14 +27,14 @@ export default function MessageBubble({ message, isOwn, showAvatar = true }: Pro
     );
   }
 
-  if (message.type === 'reference_card' && message.referenceId) {
+  if (message.type === 'reference_card' && message.reference_id) {
     return (
       <div className={clsx('flex mb-4', isOwn ? 'justify-end' : 'justify-start')}>
         <div className={clsx('max-w-sm', isOwn ? 'items-end' : 'items-start')}>
           <p className="text-xs text-ndp-muted mb-1.5 px-1">
             {isOwn ? 'Hai inviato una referenza' : 'Ha inviato una referenza'}
           </p>
-          <ReferenceCard referenceId={message.referenceId} />
+          <ReferenceCard referenceId={message.reference_id} />
         </div>
       </div>
     );
@@ -45,7 +45,7 @@ export default function MessageBubble({ message, isOwn, showAvatar = true }: Pro
       <div className={clsx('flex mb-3 gap-2', isOwn ? 'justify-end flex-row-reverse' : 'justify-start')}>
         {!isOwn && showAvatar && (
           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center text-white text-xs font-bold shrink-0 mt-auto">
-            {message.senderName.charAt(0)}
+            {message.sender_name.charAt(0)}
           </div>
         )}
         <div className="max-w-xs">
@@ -59,8 +59,8 @@ export default function MessageBubble({ message, isOwn, showAvatar = true }: Pro
               <Paperclip className="w-4 h-4 text-ndp-blue" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-ndp-text truncate">{message.attachmentName}</p>
-              <p className="text-[10px] text-ndp-muted">{message.attachmentSize} · Demo allegato</p>
+              <p className="text-xs font-semibold text-ndp-text truncate">{message.attachment_name}</p>
+              <p className="text-[10px] text-ndp-muted">{message.attachment_size} · Demo allegato</p>
             </div>
           </div>
           <div className={clsx('flex items-center gap-1 mt-1', isOwn ? 'justify-end' : 'justify-start')}>
@@ -76,7 +76,7 @@ export default function MessageBubble({ message, isOwn, showAvatar = true }: Pro
     <div className={clsx('flex mb-3 gap-2', isOwn ? 'justify-end flex-row-reverse' : 'justify-start')}>
       {!isOwn && showAvatar && (
         <div className="w-7 h-7 rounded-full bg-gradient-to-br from-ndp-blue-mid to-ndp-blue flex items-center justify-center text-white text-xs font-bold shrink-0 mt-auto">
-          {message.senderName.charAt(0)}
+          {message.sender_name.charAt(0)}
         </div>
       )}
       {!isOwn && !showAvatar && <div className="w-7 shrink-0" />}
@@ -85,9 +85,7 @@ export default function MessageBubble({ message, isOwn, showAvatar = true }: Pro
         <div
           className={clsx(
             'px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed',
-            isOwn
-              ? 'bg-ndp-blue text-white rounded-tr-sm'
-              : 'bg-ndp-bg text-ndp-text rounded-tl-sm'
+            isOwn ? 'bg-ndp-blue text-white rounded-tr-sm' : 'bg-ndp-bg text-ndp-text rounded-tl-sm'
           )}
         >
           {message.content}

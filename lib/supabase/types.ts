@@ -1,5 +1,4 @@
-// Supabase Database type definitions
-// Auto-generated shape matching our schema
+// Supabase Database type definitions matching postgrest-js GenericSchema format
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
@@ -30,6 +29,7 @@ export interface Database {
           registered_at?: string;
         };
         Update: Partial<Database['public']['Tables']['user_profiles']['Insert']>;
+        Relationships: [];
       };
       wizard_profiles: {
         Row: {
@@ -45,6 +45,7 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database['public']['Tables']['wizard_profiles']['Insert']>;
+        Relationships: [];
       };
       professionals: {
         Row: {
@@ -73,8 +74,34 @@ export interface Database {
           open_requests: number;
           created_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['professionals']['Row'], 'created_at'> & { created_at?: string };
+        Insert: {
+          id: string;
+          user_id?: string | null;
+          name: string;
+          profession: string;
+          category?: string | null;
+          city: string;
+          province?: string | null;
+          chapter?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          bio?: string | null;
+          specialties?: string[];
+          years_in_bni?: number;
+          referrals_given?: number;
+          rating?: number;
+          month_score?: number;
+          profile_score?: number;
+          requests_received?: number;
+          requests_fulfilled?: number;
+          avg_response_time?: number;
+          is_top_of_month?: boolean;
+          profile_complete?: boolean;
+          open_requests?: number;
+          created_at?: string;
+        };
         Update: Partial<Database['public']['Tables']['professionals']['Insert']>;
+        Relationships: [];
       };
       conversations: {
         Row: {
@@ -100,6 +127,7 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['conversations']['Insert']>;
+        Relationships: [];
       };
       messages: {
         Row: {
@@ -129,6 +157,7 @@ export interface Database {
           sent_at?: string;
         };
         Update: Partial<Database['public']['Tables']['messages']['Insert']>;
+        Relationships: [];
       };
       references: {
         Row: {
@@ -172,6 +201,7 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['references']['Insert']>;
+        Relationships: [];
       };
       activity_logs: {
         Row: {
@@ -193,6 +223,7 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['activity_logs']['Insert']>;
+        Relationships: [];
       };
       alerts: {
         Row: {
@@ -222,6 +253,7 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['alerts']['Insert']>;
+        Relationships: [];
       };
       awards: {
         Row: {
@@ -247,7 +279,10 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['awards']['Insert']>;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
   };
 }

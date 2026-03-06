@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Search, Plus, Filter } from 'lucide-react';
-import { Conversation, ConversationStatus } from '@/lib/types';
+import { Conversation } from '@/lib/db/conversations';
 import ConversationItem from './ConversationItem';
 import clsx from 'clsx';
 
@@ -30,9 +30,9 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
       if (search) {
         const q = search.toLowerCase();
         return (
-          c.lastMessagePreview.toLowerCase().includes(q) ||
+          c.last_message_preview.toLowerCase().includes(q) ||
           (c.subject ?? '').toLowerCase().includes(q) ||
-          c.professionalId.toLowerCase().includes(q)
+          c.professional_id.toLowerCase().includes(q)
         );
       }
       return true;
@@ -47,7 +47,6 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
 
   return (
     <div className="flex flex-col h-full bg-white border-r border-ndp-border">
-      {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-ndp-border">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display font-bold text-ndp-text text-base">Messaggi</h2>
@@ -58,7 +57,6 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
           )}
         </div>
 
-        {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ndp-muted" />
           <input
@@ -70,7 +68,6 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
           />
         </div>
 
-        {/* Filters */}
         <div className="flex gap-1 mt-2.5">
           {filterLabels.map(({ key, label }) => (
             <button
@@ -78,9 +75,7 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
               onClick={() => setFilter(key)}
               className={clsx(
                 'flex-1 py-1 text-xs font-medium rounded-lg transition-all',
-                filter === key
-                  ? 'bg-ndp-blue text-white'
-                  : 'text-ndp-muted hover:bg-ndp-bg'
+                filter === key ? 'bg-ndp-blue text-white' : 'text-ndp-muted hover:bg-ndp-bg'
               )}
             >
               {label}
@@ -89,7 +84,6 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
         </div>
       </div>
 
-      {/* List */}
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full py-12 px-6 text-center">
@@ -100,7 +94,7 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
               {search ? 'Nessun risultato' : 'Nessuna conversazione'}
             </p>
             <p className="text-xs text-ndp-muted/60 mt-1">
-              {search ? 'Prova con altri termini' : 'Trova un professionista con l\'Assistente AI'}
+              {search ? 'Prova con altri termini' : "Trova un professionista con l'Assistente AI"}
             </p>
           </div>
         ) : (

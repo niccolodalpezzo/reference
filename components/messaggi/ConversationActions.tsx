@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Archive, VolumeX, CheckCircle2, Trash2 } from 'lucide-react';
-import { updateConversation } from '@/lib/storage/conversations';
-import { log } from '@/lib/logger';
+import { MoreVertical, Archive, VolumeX, CheckCircle2 } from 'lucide-react';
+import { updateConversation, Conversation } from '@/lib/db/conversations';
+import { appendLog } from '@/lib/db/logs';
 import { useAuth } from '@/context/AuthContext';
-import { Conversation } from '@/lib/types';
 
 interface Props {
   conversation: Conversation;
@@ -25,14 +24,22 @@ export default function ConversationActions({ conversation, onUpdate }: Props) {
     return () => document.removeEventListener('mousedown', close);
   }, []);
 
-  function handleAction(action: string) {
+  async function handleAction(action: string) {
     if (action === 'archive') {
-      updateConversation(conversation.id, { status: 'archived' });
+      await updateConversation(conversation.id, { status: 'archived' });
     } else if (action === 'mute') {
-      updateConversation(conversation.id, { status: 'muted' });
+      await updateConversation(conversation.id, { status: 'muted' });
     } else if (action === 'resolve') {
-      updateConversation(conversation.id, { status: 'resolved' });
-      log(user, 'conversation_resolved', `Conversazione risolta`, { conversationId: conversation.id });
+      await updateConversation(conversation.id, { status: 'resolved' });
+      if (user) {
+        await appendLog({
+          user_id: user.id,
+          user_display_name: user.name,
+          type: 'conversation_resolved',
+          description: 'Conversazione risolta',
+          metadata: { conversationId: conversation.id },
+        });
+      }
     }
     setOpen(false);
     onUpdate();

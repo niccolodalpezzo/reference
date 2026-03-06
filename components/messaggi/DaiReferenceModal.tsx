@@ -2,13 +2,15 @@
 
 import { useState } from 'react';
 import { X, Award, Info } from 'lucide-react';
-import { createReference } from '@/lib/storage/references';
-import { addMessage } from '@/lib/storage/messages';
-import { log } from '@/lib/logger';
+import { createReference } from '@/lib/db/references';
+import { addMessage } from '@/lib/db/messages';
+import { appendLog } from '@/lib/db/logs';
 import { useAuth } from '@/context/AuthContext';
-import { ContactType, UrgencyLevel } from '@/lib/types';
 import { getProfessionalById } from '@/lib/utils';
 import clsx from 'clsx';
+
+type ContactType = 'lead' | 'referenza' | 'opportunità';
+type UrgencyLevel = 'bassa' | 'media' | 'alta';
 
 interface Props {
   conversationId: string;
@@ -59,34 +61,38 @@ export default function DaiReferenceModal({ conversationId, professionalId, onCl
     setIsSubmitting(true);
 
     try {
-      const ref = createReference({
-        conversationId,
-        fromUserId: user.id,
-        fromUserName: user.name,
-        toProfessionalId: professionalId,
-        toProfessionalName: pro?.name ?? 'Professionista',
-        contactName: form.contactName.trim(),
-        contactType: form.contactType,
-        contactInfo: form.contactInfo.trim(),
+      const ref = await createReference({
+        conversation_id: conversationId,
+        from_user_id: user.id,
+        from_user_name: user.name,
+        to_professional_id: professionalId,
+        to_professional_name: pro?.name ?? 'Professionista',
+        contact_name: form.contactName.trim(),
+        contact_type: form.contactType,
+        contact_info: form.contactInfo.trim(),
         notes: form.notes.trim(),
         urgency: form.urgency,
-        hasConsent: form.hasConsent,
+        has_consent: form.hasConsent,
       });
 
-      // Add reference card message to conversation
-      addMessage({
-        conversationId,
-        senderId: user.id,
-        senderName: user.name,
-        content: `Ho una referenza per te: ${form.contactName}`,
-        type: 'reference_card',
-        referenceId: ref.id,
-      });
+      if (ref) {
+        await addMessage({
+          conversation_id: conversationId,
+          sender_id: user.id,
+          sender_name: user.name,
+          content: `Ho una referenza per te: ${form.contactName}`,
+          type: 'reference_card',
+          reference_id: ref.id,
+        });
 
-      log(user, 'reference_created', `Referenza inviata a ${pro?.name ?? 'professionista'}: ${form.contactName} (${form.contactType})`, {
-        referenceId: ref.id,
-        urgency: form.urgency,
-      });
+        await appendLog({
+          user_id: user.id,
+          user_display_name: user.name,
+          type: 'reference_created',
+          description: `Referenza inviata a ${pro?.name ?? 'professionista'}: ${form.contactName} (${form.contactType})`,
+          metadata: { referenceId: ref.id, urgency: form.urgency },
+        });
+      }
 
       onCreated();
     } finally {
@@ -98,7 +104,6 @@ export default function DaiReferenceModal({ conversationId, professionalId, onCl
     <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden animate-slide-up">
-        {/* Gold header */}
         <div className="bg-gradient-to-r from-ndp-gold to-ndp-gold-dark px-6 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -117,7 +122,6 @@ export default function DaiReferenceModal({ conversationId, professionalId, onCl
         </div>
 
         <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto scrollbar-thin">
-          {/* Info banner */}
           <div className="flex gap-2.5 bg-ndp-bg rounded-xl p-3">
             <Info className="w-4 h-4 text-ndp-blue shrink-0 mt-0.5" />
             <p className="text-xs text-ndp-muted leading-relaxed">
@@ -126,7 +130,6 @@ export default function DaiReferenceModal({ conversationId, professionalId, onCl
             </p>
           </div>
 
-          {/* Contact name */}
           <div>
             <label className="block text-xs font-bold text-ndp-text mb-1.5">Nome del contatto *</label>
             <input
@@ -139,7 +142,6 @@ export default function DaiReferenceModal({ conversationId, professionalId, onCl
             {errors.contactName && <p className="text-red-500 text-xs mt-1">{errors.contactName}</p>}
           </div>
 
-          {/* Contact type */}
           <div>
             <label className="block text-xs font-bold text-ndp-text mb-2">Tipo di contatto *</label>
             <div className="grid grid-cols-3 gap-2">
@@ -150,9 +152,7 @@ export default function DaiReferenceModal({ conversationId, professionalId, onCl
                   onClick={() => setForm((f) => ({ ...f, contactType: value }))}
                   className={clsx(
                     'p-3 rounded-xl border-2 text-left transition-all',
-                    form.contactType === value
-                      ? 'border-ndp-blue bg-ndp-blue/5'
-                      : 'border-ndp-border hover:border-ndp-blue/40'
+                    form.contactType === value ? 'border-ndp-blue bg-ndp-blue/5' : 'border-ndp-border hover:border-ndp-blue/40'
                   )}
                 >
                   <p className="text-xs font-bold text-ndp-text mb-0.5">{label}</p>
@@ -162,7 +162,6 @@ export default function DaiReferenceModal({ conversationId, professionalId, onCl
             </div>
           </div>
 
-          {/* Contact info */}
           <div>
             <label className="block text-xs font-bold text-ndp-text mb-1.5">Email o telefono *</label>
             <input
@@ -175,20 +174,18 @@ export default function DaiReferenceModal({ conversationId, professionalId, onCl
             {errors.contactInfo && <p className="text-red-500 text-xs mt-1">{errors.contactInfo}</p>}
           </div>
 
-          {/* Notes */}
           <div>
             <label className="block text-xs font-bold text-ndp-text mb-1.5">Perché è una buona referenza *</label>
             <textarea
               value={form.notes}
               onChange={(e) => { setForm((f) => ({ ...f, notes: e.target.value })); setErrors((er) => ({ ...er, notes: '' })); }}
-              placeholder="Descrivi brevemente il bisogno del contatto e perché è adatto..."
+              placeholder="Descrivi brevemente il bisogno del contatto..."
               rows={3}
               className={clsx('w-full px-3.5 py-2.5 rounded-xl border text-sm resize-none', errors.notes ? 'border-red-400' : 'border-ndp-border focus:border-ndp-blue', 'focus:outline-none')}
             />
             {errors.notes && <p className="text-red-500 text-xs mt-1">{errors.notes}</p>}
           </div>
 
-          {/* Urgency */}
           <div>
             <label className="block text-xs font-bold text-ndp-text mb-1.5">Urgenza</label>
             <div className="flex gap-1.5">
@@ -208,7 +205,6 @@ export default function DaiReferenceModal({ conversationId, professionalId, onCl
             </div>
           </div>
 
-          {/* Consent */}
           <div className={clsx('p-3.5 rounded-xl border-2', errors.hasConsent ? 'border-red-400 bg-red-50' : 'border-ndp-border')}>
             <label className="flex items-start gap-3 cursor-pointer">
               <input
@@ -225,7 +221,6 @@ export default function DaiReferenceModal({ conversationId, professionalId, onCl
           </div>
         </div>
 
-        {/* Footer */}
         <div className="px-6 py-4 border-t border-ndp-border flex gap-3">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-ndp-border text-sm font-medium text-ndp-muted hover:bg-ndp-bg transition-colors">
             Annulla
