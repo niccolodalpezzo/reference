@@ -1,12 +1,15 @@
 'use client';
 
+import React from 'react';
 import AuthGuard from '@/components/AuthGuard';
 import { professionals } from '@/lib/data';
 import { daysSince, formatDate } from '@/lib/utils';
 import Link from 'next/link';
-import { useState } from 'react';
-import { ArrowLeft, AlertTriangle, Star, TrendingUp, Clock, CheckCircle2, MessageSquare, Award, X } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { ArrowLeft, AlertTriangle, Star, TrendingUp, Clock, CheckCircle2, MessageSquare, Award, X, Send, Gift, UserPlus, Edit3, GitMerge, Filter } from 'lucide-react';
 import { use } from 'react';
+import { getLogsForUser } from '@/lib/storage/logs';
+import { ActivityLog, ActivityLogType } from '@/lib/types';
 
 function getInitials(name: string) {
   return name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
@@ -67,6 +70,98 @@ Grazie!`;
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Activity Log Component ───────────────────────────────────────────────────
+
+const LOG_TYPE_META: Record<ActivityLogType, { label: string; color: string; Icon: React.ElementType }> = {
+  request_sent:          { label: 'Richiesta inviata',       color: 'text-ndp-blue',   Icon: Send },
+  chat_started:          { label: 'Chat avviata',            color: 'text-ndp-blue',   Icon: MessageSquare },
+  first_response:        { label: 'Prima risposta',          color: 'text-green-600',  Icon: CheckCircle2 },
+  attachment_sent:       { label: 'Allegato inviato',        color: 'text-ndp-muted',  Icon: GitMerge },
+  reference_created:     { label: 'Referenza inviata',       color: 'text-ndp-gold-dark', Icon: Gift },
+  reference_approved:    { label: 'Referenza approvata',     color: 'text-green-600',  Icon: CheckCircle2 },
+  reference_rejected:    { label: 'Referenza rifiutata',     color: 'text-red-500',    Icon: X },
+  profile_updated:       { label: 'Profilo aggiornato',      color: 'text-ndp-muted',  Icon: Edit3 },
+  profile_completed:     { label: 'Profilo completato',      color: 'text-ndp-gold-dark', Icon: Star },
+  conversation_resolved: { label: 'Chat risolta',            color: 'text-green-600',  Icon: CheckCircle2 },
+  top_performer_marked:  { label: 'Top Performer',           color: 'text-ndp-gold-dark', Icon: Award },
+  alert_created:         { label: 'Alert creato',            color: 'text-amber-500',  Icon: AlertTriangle },
+  alert_closed:          { label: 'Alert chiuso',            color: 'text-ndp-muted',  Icon: CheckCircle2 },
+  user_registered:       { label: 'Registrazione',           color: 'text-ndp-blue',   Icon: UserPlus },
+};
+
+function MemberActivityLog({ memberId, memberName }: { memberId: string; memberName: string }) {
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [filter, setFilter] = useState<ActivityLogType | 'all'>('all');
+
+  const load = useCallback(() => {
+    // Logs may be keyed by userId (u1) or professionalId (mi-001); try both
+    const byUser = getLogsForUser(memberId);
+    const byProf = getLogsForUser(`u-${memberId}`); // fallback attempt
+    setLogs(byUser.length > 0 ? byUser : byProf);
+  }, [memberId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = filter === 'all' ? logs : logs.filter((l) => l.type === filter);
+
+  function relTime(iso: string) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const d = Math.floor(diff / 86400000);
+    if (d === 0) return 'Oggi';
+    if (d === 1) return 'Ieri';
+    if (d < 30) return `${d} giorni fa`;
+    return new Date(iso).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-ndp-border shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b border-ndp-border flex items-center justify-between gap-4 flex-wrap">
+        <h2 className="font-semibold text-ndp-text">Log attività — {memberName}</h2>
+        <div className="flex items-center gap-2">
+          <Filter size={12} className="text-ndp-muted" />
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value as ActivityLogType | 'all')}
+            className="text-xs border border-ndp-border rounded-lg px-2 py-1.5 focus:outline-none focus:border-ndp-blue/50 bg-white"
+          >
+            <option value="all">Tutte le attività</option>
+            {(Object.keys(LOG_TYPE_META) as ActivityLogType[]).map((t) => (
+              <option key={t} value={t}>{LOG_TYPE_META[t].label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="py-12 text-center text-ndp-muted text-sm">
+          {logs.length === 0 ? 'Nessuna attività registrata per questo membro.' : 'Nessuna attività per il filtro selezionato.'}
+        </div>
+      ) : (
+        <div className="divide-y divide-ndp-border">
+          {filtered.map((entry) => {
+            const meta = LOG_TYPE_META[entry.type] ?? { label: entry.type, color: 'text-ndp-muted', Icon: Clock };
+            const { Icon, color, label } = meta;
+            return (
+              <div key={entry.id} className="px-5 py-3.5 flex items-start gap-3">
+                <div className={`mt-0.5 shrink-0 ${color}`}>
+                  <Icon size={15} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-semibold text-ndp-text">{label}</span>
+                  </div>
+                  <p className="text-xs text-ndp-muted mt-0.5 leading-relaxed">{entry.description}</p>
+                </div>
+                <span className="text-[11px] text-ndp-muted shrink-0 whitespace-nowrap">{relTime(entry.timestamp)}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -213,6 +308,9 @@ function MemberDetailContent({ params }: { params: Promise<{ id: string }> }) {
             ))}
           </div>
         </div>
+
+        {/* Activity Log */}
+        <MemberActivityLog memberId={member.id} memberName={member.name} />
       </div>
     </div>
   );
