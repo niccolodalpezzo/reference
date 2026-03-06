@@ -6,8 +6,10 @@ import Link from 'next/link';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { WizardProfile } from '@/lib/types';
 import { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 function WizardContent() {
+  const { user } = useAuth();
   const [saved, setSaved] = useState(false);
 
   const handleSave = (_profile: WizardProfile) => {
@@ -51,7 +53,7 @@ function WizardContent() {
       )}
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-        <ProfileWizard onSave={handleSave} />
+        <ProfileWizard onSave={handleSave} userId={user?.id ?? 'u1'} />
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
 import AuthGuard from '@/components/AuthGuard';
 import { professionals } from '@/lib/data';
 import { getAlertMembers, daysSince } from '@/lib/utils';
@@ -606,7 +605,7 @@ function InVerificaTab() {
                       onClick={() => handleApprove(ref)}
                       className="flex-1 bg-green-500 text-white font-bold py-2.5 rounded-xl text-sm hover:bg-green-600 transition-all"
                     >
-                      Conferma approvazione (+40 pt)
+                      Conferma approvazione (+30 bonus)
                     </button>
                     <button
                       onClick={() => setConfirmingId(null)}
@@ -621,7 +620,7 @@ function InVerificaTab() {
                       onClick={() => setConfirmingId(ref.id)}
                       className="flex-1 bg-green-50 text-green-700 font-bold py-2.5 rounded-xl text-sm border border-green-200 hover:bg-green-100 transition-all flex items-center justify-center gap-1.5"
                     >
-                      <CheckCircle2 size={14} /> Approva
+                      <CheckCircle2 size={14} /> Approva (+30 bonus)
                     </button>
                     <button
                       onClick={() => setRejectingRef(ref)}
@@ -650,14 +649,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
 ];
 
 function ZonaDashboardContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const tabParam = searchParams.get('tab') as Tab | null;
-  const activeTab: Tab = TABS.some((t) => t.id === tabParam) ? tabParam! : 'panoramica';
-
-  function setTab(tab: Tab) {
-    router.replace(`/resp-zona?tab=${tab}`, { scroll: false });
-  }
+  const [activeTab, setActiveTab] = useState<Tab>('panoramica');
 
   return (
     <div className="min-h-screen bg-ndp-bg">
@@ -678,7 +670,7 @@ function ZonaDashboardContent() {
             {TABS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
-                onClick={() => setTab(id)}
+                onClick={() => setActiveTab(id as Tab)}
                 className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-t-xl transition-all whitespace-nowrap ${
                   activeTab === id
                     ? 'bg-ndp-bg text-ndp-blue'
@@ -706,9 +698,7 @@ function ZonaDashboardContent() {
 export default function RespZonaPage() {
   return (
     <AuthGuard requiredRole="zone_manager">
-      <React.Suspense fallback={<div className="min-h-screen bg-ndp-bg" />}>
-        <ZonaDashboardContent />
-      </React.Suspense>
+      <ZonaDashboardContent />
     </AuthGuard>
   );
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import ClientFooter from '@/components/ClientFooter';
 import { AuthProvider } from '@/context/AuthContext';
 import SeedProvider from '@/components/SeedProvider';
 
@@ -20,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SeedProvider>
             <Navbar />
             <main className="min-h-screen">{children}</main>
-            <Footer />
+            <ClientFooter />
           </SeedProvider>
         </AuthProvider>
       </body>

@@ -40,11 +40,12 @@ export function getReferenceById(id: string): Reference | null {
   return getAll().find((r) => r.id === id) ?? null;
 }
 
-export function createReference(payload: Omit<Reference, 'id' | 'createdAt' | 'status'>): Reference {
+export function createReference(payload: Omit<Reference, 'id' | 'createdAt' | 'status' | 'scoreAwarded'>): Reference {
   const ref: Reference = {
     ...payload,
     id: `ref-${Date.now()}`,
-    status: 'inviata',
+    status: 'in_verifica',
+    scoreAwarded: 10,
     createdAt: new Date().toISOString(),
   };
   const all = getAll();
@@ -64,7 +65,7 @@ export function approveReference(id: string, reviewedByUserId: string, reviewNot
     reviewedByUserId,
     reviewNotes,
     reviewedAt: new Date().toISOString(),
-    scoreAwarded: 40,
+    scoreAwarded: 40, // +10 at creation + 30 bonus on approval
   });
 }
 

@@ -2,7 +2,7 @@
 
 import { getReferenceById } from '@/lib/storage/references';
 import { Reference, ReferenceStatus } from '@/lib/types';
-import { Award, AlertCircle, CheckCircle2, Clock, XCircle, TrendingUp } from 'lucide-react';
+import { Award, AlertCircle, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import clsx from 'clsx';
 
 interface Props {
@@ -75,15 +75,14 @@ export default function ReferenceCard({ referenceId, reference: propRef }: Props
         <span className={clsx('text-[10px] font-semibold px-2 py-0.5 rounded-full', urgencyColors[ref.urgency])}>
           Urgenza {ref.urgency}
         </span>
-        {ref.estimatedValue && (
-          <span className="text-[10px] font-semibold text-ndp-blue bg-ndp-bg px-2 py-0.5 rounded-full flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" />
-            ~€{ref.estimatedValue.toLocaleString('it-IT')}
+        {ref.status === 'in_verifica' && (
+          <span className="text-[10px] font-semibold text-yellow-700 bg-yellow-50 px-2 py-0.5 rounded-full ml-auto">
+            +10 pt assegnati · In verifica per bonus
           </span>
         )}
-        {isApproved && ref.scoreAwarded && (
+        {isApproved && (
           <span className="text-[10px] font-bold text-ndp-gold-dark bg-ndp-gold-light px-2 py-0.5 rounded-full ml-auto">
-            +{ref.scoreAwarded} pts
+            +40 pt totali
           </span>
         )}
       </div>
