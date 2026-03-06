@@ -3,14 +3,10 @@
 import { useEffect, useState } from 'react';
 import AuthGuard from '@/components/AuthGuard';
 import { useAuth } from '@/context/AuthContext';
-import { getProfessionalById } from '@/lib/utils';
-import { computeScore, computeProfileCompletion } from '@/lib/scoring';
-import { getReferencesByProfessional } from '@/lib/storage/references';
-import { getConversations } from '@/lib/storage/conversations';
-import { AfidabilityScore, Conversation, WizardProfile } from '@/lib/types';
-import AfidabilityGauge from '@/components/scoring/AfidabilityGauge';
-import ScoreBreakdown from '@/components/scoring/ScoreBreakdown';
-import MotivationBanner from '@/components/scoring/MotivationBanner';
+import { getWizardProfile } from '@/lib/db/wizard';
+import { getConversations, Conversation } from '@/lib/db/conversations';
+import { computeProfileCompletion } from '@/lib/scoring';
+import { WizardProfile } from '@/lib/types';
 import Link from 'next/link';
 import {
   MessageSquare, Clock, Eye, Edit3, Award, ChevronRight, Search,
@@ -18,42 +14,40 @@ import {
 
 function DashboardContent() {
   const { user } = useAuth();
-  const professional = user?.professionalId ? getProfessionalById(user.professionalId) : null;
-
-  const [score, setScore] = useState<AfidabilityScore | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [profilePct, setProfilePct] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    const convs = getConversations(user.id);
-    setConversations(convs);
 
-    if (professional) {
-      const refs = getReferencesByProfessional(professional.id);
-      const s = computeScore(professional, refs, convs);
-      setScore(s);
+    async function load() {
+      if (!user) return;
+      const [convs, wizardData] = await Promise.all([
+        getConversations(user.id),
+        getWizardProfile(user.id),
+      ]);
+      setConversations(convs);
+      if (wizardData.profile) {
+        setProfilePct(computeProfileCompletion(wizardData.profile as WizardProfile));
+      } else {
+        setProfilePct(wizardData.completionPct);
+      }
+      setIsLoading(false);
     }
 
-    // Load wizard profile for completion %
-    const stored = localStorage.getItem('ndp-wizard-' + user.id);
-    if (stored) {
-      try {
-        const wizardProfile: WizardProfile = JSON.parse(stored);
-        setProfilePct(computeProfileCompletion(wizardProfile));
-      } catch { /* ignore */ }
-    } else if (user.id === 'u1') {
-      // Marco demo account — import demoMarcoProfile dynamically
-      import('@/lib/memberData').then(({ demoMarcoProfile }) => {
-        setProfilePct(computeProfileCompletion(demoMarcoProfile));
-      });
-    }
-  }, [professional, user]);
-
-  const avgResponseTime = professional?.avgResponseTime ?? 18;
-  const isTopOfMonth = professional?.isTopOfMonth ?? false;
+    load();
+  }, [user]);
 
   const recentConvs = conversations.slice(0, 4);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-ndp-bg flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-ndp-blue/20 border-t-ndp-blue rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-ndp-bg">
@@ -62,27 +56,14 @@ function DashboardContent() {
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              {isTopOfMonth && (
-                <div className="inline-flex items-center gap-1.5 bg-ndp-gold text-white text-xs font-bold px-3 py-1 rounded-full mb-3">
-                  <Award size={12} />
-                  Top del Mese
-                </div>
-              )}
               <h1 className="font-display text-2xl sm:text-3xl font-bold text-white">
                 Ciao, {user?.name.split(' ')[0]}
               </h1>
               <p className="text-white/60 text-sm mt-1">
-                {professional?.profession ?? 'Professionista'} · {professional?.city ?? ''} · {professional?.chapter ?? ''}
+                {user?.city ?? ''} {user?.province ? `· ${user.province}` : ''}
               </p>
             </div>
             <div className="flex gap-3">
-              <Link
-                href="/professionisti/preview"
-                className="inline-flex items-center gap-2 border border-white/30 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-white/10 transition-all"
-              >
-                <Eye size={15} />
-                Preview
-              </Link>
               <Link
                 href="/professionisti/wizard"
                 className="inline-flex items-center gap-2 bg-white text-ndp-blue text-sm font-bold px-4 py-2 rounded-xl hover:bg-white/90 transition-all"
@@ -97,7 +78,7 @@ function DashboardContent() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
-        {/* Profile completion bar for new users */}
+        {/* Profile completion bar */}
         {profilePct < 100 && (
           <div className="bg-white rounded-2xl border border-ndp-border shadow-sm p-5">
             <div className="flex items-center justify-between mb-2">
@@ -118,35 +99,6 @@ function DashboardContent() {
                 </Link>
               </p>
             )}
-          </div>
-        )}
-
-        {/* Reliability Score Card */}
-        {score && (
-          <div className="bg-white rounded-2xl border border-ndp-border shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-ndp-border flex items-center justify-between">
-              <h2 className="font-semibold text-ndp-text">Indice di Affidabilità</h2>
-              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                score.total >= 700 ? 'bg-ndp-gold-light text-ndp-gold-dark' :
-                score.total >= 400 ? 'bg-ndp-blue/10 text-ndp-blue' :
-                'bg-red-50 text-red-600'
-              }`}>
-                {score.total >= 700 ? 'Eccellente' : score.total >= 400 ? 'In crescita' : 'Da migliorare'}
-              </span>
-            </div>
-            <div className="p-6">
-              <div className="flex flex-col sm:flex-row gap-8 items-start">
-                <div className="mx-auto sm:mx-0">
-                  <AfidabilityGauge score={score} size="lg" />
-                </div>
-                <div className="flex-1 w-full">
-                  <ScoreBreakdown score={score} />
-                </div>
-              </div>
-              <div className="mt-6">
-                <MotivationBanner score={score} />
-              </div>
-            </div>
           </div>
         )}
 
@@ -180,7 +132,7 @@ function DashboardContent() {
             <h2 className="font-semibold text-ndp-text">Ultime conversazioni</h2>
             <div className="flex items-center gap-1.5 text-xs text-ndp-muted">
               <Clock size={12} />
-              Tempo medio risposta: {avgResponseTime}h
+              {conversations.length} conversazioni
             </div>
           </div>
           {recentConvs.length === 0 ? (
@@ -211,16 +163,16 @@ function DashboardContent() {
                       <span className="text-sm font-medium text-ndp-text truncate">
                         {conv.subject ?? 'Conversazione'}
                       </span>
-                      {conv.unreadCount > 0 && (
+                      {conv.unread_count > 0 && (
                         <span className="text-[10px] font-bold text-white bg-ndp-blue px-2 py-0.5 rounded-full shrink-0">
-                          {conv.unreadCount}
+                          {conv.unread_count}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-ndp-muted truncate">{conv.lastMessagePreview}</p>
+                    <p className="text-xs text-ndp-muted truncate">{conv.last_message_preview}</p>
                   </div>
                   <span className="text-xs text-ndp-muted shrink-0">
-                    {new Date(conv.lastMessageAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}
+                    {new Date(conv.last_message_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}
                   </span>
                 </Link>
               ))}

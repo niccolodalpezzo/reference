@@ -1,6 +1,6 @@
 'use client';
 
-import { Conversation } from '@/lib/types';
+import { Conversation } from '@/lib/db/conversations';
 import { getProfessionalById } from '@/lib/utils';
 import { getInitials } from '@/lib/auth';
 import clsx from 'clsx';
@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function ConversationItem({ conversation, isSelected, onClick }: Props) {
-  const pro = getProfessionalById(conversation.professionalId);
+  const pro = getProfessionalById(conversation.professional_id);
   const name = pro?.name ?? 'Professionista';
   const profession = pro?.profession ?? '';
   const initials = getInitials(name);
@@ -25,7 +25,7 @@ export default function ConversationItem({ conversation, isSelected, onClick }: 
   }[conversation.status];
 
   const timeLabel = (() => {
-    const d = new Date(conversation.lastMessageAt);
+    const d = new Date(conversation.last_message_at);
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
     const diffDays = Math.floor(diffMs / 86400000);
@@ -43,7 +43,6 @@ export default function ConversationItem({ conversation, isSelected, onClick }: 
         isSelected && 'bg-ndp-blue/5 border-l-2 border-l-ndp-blue'
       )}
     >
-      {/* Avatar */}
       <div className="relative shrink-0">
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-ndp-blue to-ndp-blue-mid flex items-center justify-center text-white text-sm font-bold">
           {initials}
@@ -51,7 +50,6 @@ export default function ConversationItem({ conversation, isSelected, onClick }: 
         <span className={clsx('absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white', statusColor)} />
       </div>
 
-      {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
           <span className={clsx('text-sm font-semibold truncate', isSelected ? 'text-ndp-blue' : 'text-ndp-text')}>
@@ -61,10 +59,10 @@ export default function ConversationItem({ conversation, isSelected, onClick }: 
         </div>
         <p className="text-[11px] text-ndp-muted truncate mb-1">{profession}</p>
         <div className="flex items-center gap-2">
-          <p className="text-xs text-ndp-muted truncate flex-1">{conversation.lastMessagePreview || 'Nessun messaggio'}</p>
-          {conversation.unreadCount > 0 && (
+          <p className="text-xs text-ndp-muted truncate flex-1">{conversation.last_message_preview || 'Nessun messaggio'}</p>
+          {conversation.unread_count > 0 && (
             <span className="shrink-0 w-5 h-5 bg-ndp-blue text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-              {conversation.unreadCount > 9 ? '9+' : conversation.unreadCount}
+              {conversation.unread_count > 9 ? '9+' : conversation.unread_count}
             </span>
           )}
         </div>

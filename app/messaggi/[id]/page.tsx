@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import { Conversation } from '@/lib/types';
-import { getConversations, getConversationById } from '@/lib/storage/conversations';
+import { getConversations, getConversationById, Conversation } from '@/lib/db/conversations';
 import { useAuth } from '@/context/AuthContext';
 import AuthGuard from '@/components/AuthGuard';
 import ConversationList from '@/components/messaggi/ConversationList';
@@ -28,12 +27,12 @@ function ConversationContent() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selected, setSelected] = useState<Conversation | null>(null);
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     if (!user) return;
-    const convs = getConversations(user.id);
+    const convs = await getConversations(user.id);
     setConversations(convs);
     if (convId) {
-      const conv = getConversationById(convId);
+      const conv = await getConversationById(convId);
       setSelected(conv);
     }
   }, [user, convId]);
@@ -46,7 +45,6 @@ function ConversationContent() {
 
   return (
     <div className="h-[calc(100vh-64px)] flex overflow-hidden">
-      {/* Left panel: conversation list (hidden on mobile) */}
       <div className="hidden md:flex w-80 shrink-0 h-full flex-col">
         <ConversationList
           conversations={conversations}
@@ -54,22 +52,15 @@ function ConversationContent() {
           onSelect={(id) => router.push(`/messaggi/${id}`)}
         />
       </div>
-
-      {/* Right panel */}
       <div className="flex-1 flex flex-col min-w-0 h-full">
-        {/* Mobile back button */}
         <div className="md:hidden px-4 py-3 border-b border-ndp-border flex items-center gap-2">
           <button onClick={() => router.push('/messaggi')} className="flex items-center gap-1.5 text-ndp-blue text-sm font-medium">
             <ArrowLeft className="w-4 h-4" />
             Messaggi
           </button>
         </div>
-
         {selected ? (
-          <MessageThread
-            conversation={selected}
-            onUpdate={load}
-          />
+          <MessageThread conversation={selected} onUpdate={load} />
         ) : (
           <EmptyConversation />
         )}

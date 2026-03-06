@@ -6,9 +6,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Professional } from '@/lib/types';
 import { getInitials } from '@/lib/auth';
-import { getOrCreateConversation } from '@/lib/storage/conversations';
-import { addSystemMessage } from '@/lib/storage/messages';
-import { log } from '@/lib/logger';
+import { getOrCreateConversation } from '@/lib/db/conversations';
+import { addSystemMessage } from '@/lib/db/messages';
+import { appendLog } from '@/lib/db/logs';
 import { useAuth } from '@/context/AuthContext';
 import clsx from 'clsx';
 
@@ -46,20 +46,26 @@ export default function ProfessionalDrawer({ professional: p, onClose, aiReasons
     sendRequest();
   }
 
-  function sendRequest() {
+  async function sendRequest() {
     if (!user) return;
     setIsRequesting(true);
 
-    const conv = getOrCreateConversation(user.id, p.id, requestSubject || `Richiesta a ${p.name}`);
-    addSystemMessage(conv.id, `Richiesta inviata a ${p.name}`);
-    log(user, 'chat_started', `Conversazione avviata con ${p.name} (${p.profession})`, {
-      conversationId: conv.id,
-      professionalId: p.id,
-    });
-
-    setIsRequesting(false);
-    onClose();
-    router.push(`/messaggi/${conv.id}`);
+    const conv = await getOrCreateConversation(user.id, p.id, requestSubject || `Richiesta a ${p.name}`);
+    if (conv) {
+      await addSystemMessage(conv.id, `Richiesta inviata a ${p.name}`);
+      await appendLog({
+        user_id: user.id,
+        user_display_name: user.name,
+        type: 'chat_started',
+        description: `Conversazione avviata con ${p.name} (${p.profession})`,
+        metadata: { conversationId: conv.id, professionalId: p.id },
+      });
+      setIsRequesting(false);
+      onClose();
+      router.push(`/messaggi/${conv.id}`);
+    } else {
+      setIsRequesting(false);
+    }
   }
 
   const sla = p.avgResponseTime

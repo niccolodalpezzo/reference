@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Paperclip, Award, Phone, Mail, ExternalLink } from 'lucide-react';
-import { Message, Conversation } from '@/lib/types';
-import { getMessages, addMessage } from '@/lib/storage/messages';
-import { markAllRead } from '@/lib/storage/conversations';
+import { Send, Paperclip, Award, Phone, ExternalLink } from 'lucide-react';
+import { getMessages, addMessage, markConversationRead, Message } from '@/lib/db/messages';
+import { Conversation } from '@/lib/db/conversations';
 import { getProfessionalById } from '@/lib/utils';
 import { getInitials } from '@/lib/auth';
 import { useAuth } from '@/context/AuthContext';
-import { log } from '@/lib/logger';
+import { appendLog } from '@/lib/db/logs';
+import { createClient } from '@/lib/supabase/client';
 import MessageBubble from './MessageBubble';
 import DaiReferenceModal from './DaiReferenceModal';
 import ConversationActions from './ConversationActions';
@@ -47,12 +47,12 @@ export default function MessageThread({ conversation, onUpdate }: Props) {
   const [showReferenceModal, setShowReferenceModal] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const pro = getProfessionalById(conversation.professionalId);
+  const pro = getProfessionalById(conversation.professional_id);
 
-  const loadMessages = useCallback(() => {
-    const msgs = getMessages(conversation.id);
+  const loadMessages = useCallback(async () => {
+    const msgs = await getMessages(conversation.id);
     setMessages(msgs);
-    markAllRead(conversation.id);
+    await markConversationRead(conversation.id);
     onUpdate();
   }, [conversation.id, onUpdate]);
 
@@ -60,25 +60,53 @@ export default function MessageThread({ conversation, onUpdate }: Props) {
     loadMessages();
   }, [loadMessages]);
 
+  // Realtime subscription
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`conversation:${conversation.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversation.id}`,
+      }, (payload) => {
+        setMessages((prev) => {
+          // Avoid duplicates
+          if (prev.find((m) => m.id === (payload.new as Message).id)) return prev;
+          return [...prev, payload.new as Message];
+        });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [conversation.id]);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  function handleSend() {
+  async function handleSend() {
     if (!input.trim() || !user) return;
     setIsSending(true);
 
-    const isFirstReply = messages.filter((m) => m.senderId === user.id).length === 0;
-    addMessage({
-      conversationId: conversation.id,
-      senderId: user.id,
-      senderName: user.name,
+    const isFirstReply = messages.filter((m) => m.sender_id === user.id).length === 0;
+    await addMessage({
+      conversation_id: conversation.id,
+      sender_id: user.id,
+      sender_name: user.name,
       content: input.trim(),
       type: 'text',
     });
 
     if (isFirstReply) {
-      log(user, 'first_response', `Prima risposta nella conversazione con ${pro?.name ?? 'professionista'}`, { conversationId: conversation.id });
+      await appendLog({
+        user_id: user.id,
+        user_display_name: user.name,
+        type: 'first_response',
+        description: `Prima risposta nella conversazione con ${pro?.name ?? 'professionista'}`,
+        metadata: { conversationId: conversation.id },
+      });
     }
 
     setInput('');
@@ -86,19 +114,24 @@ export default function MessageThread({ conversation, onUpdate }: Props) {
     loadMessages();
   }
 
-  function handleAttachmentClick() {
-    // UI-only demo: just show a message about attachment
+  async function handleAttachmentClick() {
     if (!user) return;
-    addMessage({
-      conversationId: conversation.id,
-      senderId: user.id,
-      senderName: user.name,
+    await addMessage({
+      conversation_id: conversation.id,
+      sender_id: user.id,
+      sender_name: user.name,
       content: '',
       type: 'attachment',
-      attachmentName: 'documento_allegato.pdf',
-      attachmentSize: '1.4 MB',
+      attachment_name: 'documento_allegato.pdf',
+      attachment_size: '1.4 MB',
     });
-    log(user, 'attachment_sent', 'Allegato inviato nella conversazione', { conversationId: conversation.id });
+    await appendLog({
+      user_id: user.id,
+      user_display_name: user.name,
+      type: 'attachment_sent',
+      description: 'Allegato inviato nella conversazione',
+      metadata: { conversationId: conversation.id },
+    });
     loadMessages();
   }
 
@@ -167,14 +200,13 @@ export default function MessageThread({ conversation, onUpdate }: Props) {
           </div>
         ) : (
           messages.map((msg, idx) => {
-            const isOwn = msg.senderId === user?.id;
+            const isOwn = msg.sender_id === user?.id;
             const prevMsg = idx > 0 ? messages[idx - 1] : null;
-            const showDate = !prevMsg || !sameDay(prevMsg.timestamp, msg.timestamp);
-            const showAvatar = !prevMsg || prevMsg.senderId !== msg.senderId;
-
+            const showDate = !prevMsg || !sameDay(prevMsg.sent_at, msg.sent_at);
+            const showAvatar = !prevMsg || prevMsg.sender_id !== msg.sender_id;
             return (
               <div key={msg.id}>
-                {showDate && <DateSeparator date={msg.timestamp} />}
+                {showDate && <DateSeparator date={msg.sent_at} />}
                 <MessageBubble message={msg} isOwn={isOwn} showAvatar={showAvatar} />
               </div>
             );
@@ -184,7 +216,7 @@ export default function MessageThread({ conversation, onUpdate }: Props) {
       </div>
 
       {/* Reference button */}
-      {user?.role === 'member' && conversation.initiatorId === user.id && (
+      {user?.role === 'member' && conversation.initiator_id === user.id && (
         <div className="px-5 pb-2">
           <button
             onClick={() => setShowReferenceModal(true)}
@@ -202,7 +234,7 @@ export default function MessageThread({ conversation, onUpdate }: Props) {
           <button
             onClick={handleAttachmentClick}
             className="p-1.5 rounded-lg hover:bg-white text-ndp-muted transition-colors shrink-0"
-            title="Allega file (demo)"
+            title="Allega file"
           >
             <Paperclip className="w-4 h-4" />
           </button>
@@ -233,7 +265,7 @@ export default function MessageThread({ conversation, onUpdate }: Props) {
       {showReferenceModal && (
         <DaiReferenceModal
           conversationId={conversation.id}
-          professionalId={conversation.professionalId}
+          professionalId={conversation.professional_id}
           onClose={() => setShowReferenceModal(false)}
           onCreated={() => {
             setShowReferenceModal(false);
