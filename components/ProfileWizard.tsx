@@ -248,8 +248,23 @@ function PhotoUpload({ photoUrl, onChange }: { photoUrl: string; onChange: (url:
   );
 }
 
-export default function ProfileWizard({ onSave }: { onSave?: (profile: WizardProfile) => void }) {
-  const [profile, setProfile] = useState<WizardProfile>(demoMarcoProfile);
+const emptyProfile: WizardProfile = {
+  firstName: '', lastName: '', photoUrl: '', businessName: '', yearsExperience: 0,
+  cities: [], sectors: [], mainServices: [], typicalCases: '', triggerPhrases: [],
+  goals: '', achievements: '', interests: '', networks: '', skills: '',
+  idealClientProfile: '', topClients: [], goodReference: '', badReference: '',
+  otherSources: '', howHelp: '', powerTeam: [], personalInfo: '',
+};
+
+function loadWizardProfile(userId: string): WizardProfile {
+  if (typeof window === 'undefined') return userId === 'u1' ? demoMarcoProfile : emptyProfile;
+  const stored = localStorage.getItem('ndp-wizard-' + userId);
+  if (stored) { try { return JSON.parse(stored); } catch { /* fall through */ } }
+  return userId === 'u1' ? demoMarcoProfile : emptyProfile;
+}
+
+export default function ProfileWizard({ onSave, userId }: { onSave?: (profile: WizardProfile) => void; userId: string }) {
+  const [profile, setProfile] = useState<WizardProfile>(() => loadWizardProfile(userId));
   const [openSection, setOpenSection] = useState<string>('identity');
   const [saved, setSaved] = useState(false);
 
@@ -276,6 +291,9 @@ export default function ProfileWizard({ onSave }: { onSave?: (profile: WizardPro
   };
 
   const handleSave = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ndp-wizard-' + userId, JSON.stringify(profile));
+    }
     onSave?.(profile);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);

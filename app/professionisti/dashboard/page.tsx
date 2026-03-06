@@ -4,16 +4,16 @@ import { useEffect, useState } from 'react';
 import AuthGuard from '@/components/AuthGuard';
 import { useAuth } from '@/context/AuthContext';
 import { getProfessionalById } from '@/lib/utils';
-import { computeScore } from '@/lib/scoring';
+import { computeScore, computeProfileCompletion } from '@/lib/scoring';
 import { getReferencesByProfessional } from '@/lib/storage/references';
 import { getConversations } from '@/lib/storage/conversations';
-import { AfidabilityScore } from '@/lib/types';
+import { AfidabilityScore, Conversation, WizardProfile } from '@/lib/types';
 import AfidabilityGauge from '@/components/scoring/AfidabilityGauge';
 import ScoreBreakdown from '@/components/scoring/ScoreBreakdown';
 import MotivationBanner from '@/components/scoring/MotivationBanner';
 import Link from 'next/link';
 import {
-  MessageSquare, Clock, Eye, Edit3, Award, ChevronRight,
+  MessageSquare, Clock, Eye, Edit3, Award, ChevronRight, Search,
 } from 'lucide-react';
 
 function DashboardContent() {
@@ -21,23 +21,39 @@ function DashboardContent() {
   const professional = user?.professionalId ? getProfessionalById(user.professionalId) : null;
 
   const [score, setScore] = useState<AfidabilityScore | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [profilePct, setProfilePct] = useState<number>(0);
 
   useEffect(() => {
-    if (!professional || !user) return;
-    const refs = getReferencesByProfessional(professional.id);
+    if (!user) return;
     const convs = getConversations(user.id);
-    setScore(computeScore(professional, refs, convs));
+    setConversations(convs);
+
+    if (professional) {
+      const refs = getReferencesByProfessional(professional.id);
+      const s = computeScore(professional, refs, convs);
+      setScore(s);
+    }
+
+    // Load wizard profile for completion %
+    const stored = localStorage.getItem('ndp-wizard-' + user.id);
+    if (stored) {
+      try {
+        const wizardProfile: WizardProfile = JSON.parse(stored);
+        setProfilePct(computeProfileCompletion(wizardProfile));
+      } catch { /* ignore */ }
+    } else if (user.id === 'u1') {
+      // Marco demo account — import demoMarcoProfile dynamically
+      import('@/lib/memberData').then(({ demoMarcoProfile }) => {
+        setProfilePct(computeProfileCompletion(demoMarcoProfile));
+      });
+    }
   }, [professional, user]);
 
   const avgResponseTime = professional?.avgResponseTime ?? 18;
   const isTopOfMonth = professional?.isTopOfMonth ?? false;
 
-  const recentRequests = [
-    { id: 1, from: 'Giovanni F.', need: 'Contratto distribuzione internazionale', date: '2 ore fa', status: 'new' },
-    { id: 2, from: 'Laura B.', need: 'Fusione societaria PMI', date: 'Ieri', status: 'answered' },
-    { id: 3, from: 'Antonio M.', need: 'Tutela marchio registrato', date: '3 giorni fa', status: 'answered' },
-    { id: 4, from: 'Chiara R.', need: 'Contratto di agenzia', date: '5 giorni fa', status: 'answered' },
-  ];
+  const recentConvs = conversations.slice(0, 4);
 
   return (
     <div className="min-h-screen bg-ndp-bg">
@@ -81,6 +97,30 @@ function DashboardContent() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
+        {/* Profile completion bar for new users */}
+        {profilePct < 100 && (
+          <div className="bg-white rounded-2xl border border-ndp-border shadow-sm p-5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-ndp-text">Completamento profilo</span>
+              <span className="text-sm font-bold text-ndp-gold-dark">{profilePct}%</span>
+            </div>
+            <div className="h-2 bg-ndp-bg rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-ndp-gold to-ndp-gold-dark rounded-full transition-all duration-500"
+                style={{ width: `${profilePct}%` }}
+              />
+            </div>
+            {profilePct === 0 && (
+              <p className="text-xs text-ndp-muted mt-2">
+                Completa il tuo profilo AI per essere trovato dall&apos;Assistente.{' '}
+                <Link href="/professionisti/wizard" className="text-ndp-blue font-medium hover:underline">
+                  Inizia ora →
+                </Link>
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Reliability Score Card */}
         {score && (
           <div className="bg-white rounded-2xl border border-ndp-border shadow-sm overflow-hidden">
@@ -123,42 +163,69 @@ function DashboardContent() {
             <MessageSquare size={22} className="text-white/60 group-hover:text-white transition-colors" />
           </Link>
           <Link
-            href="/cerca"
+            href="/assistente"
             className="bg-white rounded-2xl border border-ndp-border p-5 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group"
           >
             <div>
               <h3 className="font-semibold text-ndp-text mb-1">Cerca professionisti</h3>
               <p className="text-xs text-ndp-muted">Trova il contatto giusto nella rete NDP</p>
             </div>
-            <ChevronRight size={20} className="text-ndp-muted group-hover:text-ndp-blue transition-colors" />
+            <Search size={20} className="text-ndp-muted group-hover:text-ndp-blue transition-colors" />
           </Link>
         </div>
 
-        {/* Recent requests */}
+        {/* Recent conversations */}
         <div className="bg-white rounded-2xl border border-ndp-border shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-ndp-border flex items-center justify-between">
-            <h2 className="font-semibold text-ndp-text">Ultime richieste ricevute</h2>
+            <h2 className="font-semibold text-ndp-text">Ultime conversazioni</h2>
             <div className="flex items-center gap-1.5 text-xs text-ndp-muted">
               <Clock size={12} />
               Tempo medio risposta: {avgResponseTime}h
             </div>
           </div>
-          <div className="divide-y divide-ndp-border">
-            {recentRequests.map((req) => (
-              <div key={req.id} className="px-6 py-4 flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-ndp-text">{req.from}</span>
-                    {req.status === 'new' && (
-                      <span className="text-[10px] font-bold text-white bg-ndp-blue px-2 py-0.5 rounded-full">NUOVA</span>
-                    )}
+          {recentConvs.length === 0 ? (
+            <div className="px-6 py-10 text-center">
+              <MessageSquare size={32} className="mx-auto text-ndp-muted/40 mb-3" />
+              <p className="text-sm font-medium text-ndp-text mb-1">Nessuna conversazione ancora</p>
+              <p className="text-xs text-ndp-muted mb-4">
+                Usa l&apos;Assistente AI per trovare il tuo primo professionista.
+              </p>
+              <Link
+                href="/assistente"
+                className="inline-flex items-center gap-2 bg-ndp-blue text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-ndp-blue/90 transition-all"
+              >
+                Vai all&apos;Assistente AI
+                <ChevronRight size={15} />
+              </Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-ndp-border">
+              {recentConvs.map((conv) => (
+                <Link
+                  key={conv.id}
+                  href={`/messaggi/${conv.id}`}
+                  className="px-6 py-4 flex items-start justify-between gap-4 hover:bg-ndp-bg/50 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-medium text-ndp-text truncate">
+                        {conv.subject ?? 'Conversazione'}
+                      </span>
+                      {conv.unreadCount > 0 && (
+                        <span className="text-[10px] font-bold text-white bg-ndp-blue px-2 py-0.5 rounded-full shrink-0">
+                          {conv.unreadCount}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-ndp-muted truncate">{conv.lastMessagePreview}</p>
                   </div>
-                  <p className="text-xs text-ndp-muted truncate">{req.need}</p>
-                </div>
-                <span className="text-xs text-ndp-muted shrink-0">{req.date}</span>
-              </div>
-            ))}
-          </div>
+                  <span className="text-xs text-ndp-muted shrink-0">
+                    {new Date(conv.lastMessageAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

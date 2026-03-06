@@ -7,15 +7,24 @@ import { User, Mail, Lock, MapPin, Briefcase, ArrowRight, CheckCircle2, Sparkles
 import { useAuth } from '@/context/AuthContext';
 import { registerUser, isEmailTaken } from '@/lib/auth';
 import { log } from '@/lib/logger';
-import { ProfessionCategory } from '@/lib/types';
 import { DEMO_ZONE_MANAGER_NAME } from '@/lib/cityZoneMap';
 import { getUniqueCities } from '@/lib/utils';
 
-const CATEGORIES: ProfessionCategory[] = [
-  'Avvocato','Commercialista','Agente Immobiliare','Assicuratore',
-  'Consulente IT','Marketing','Architetto','Dentista',
-  'Consulente Finanziario','Notaio','Ingegnere','Medico',
-  'Fotografo','Coach','Traduttore',
+const PROVINCE_ITALIANE = [
+  'Agrigento','Alessandria','Ancona','Aosta','Arezzo','Ascoli Piceno','Asti','Avellino',
+  'Bari','Barletta-Andria-Trani','Belluno','Benevento','Bergamo','Biella','Bologna',
+  'Bolzano','Brescia','Brindisi','Cagliari','Caltanissetta','Campobasso','Caserta',
+  'Catania','Catanzaro','Chieti','Como','Cosenza','Cremona','Crotone','Cuneo',
+  'Enna','Fermo','Ferrara','Firenze','Foggia','Frosinone','Genova',
+  'Gorizia','Grosseto','Imperia','Isernia','La Spezia','L Aquila','Latina','Lecce',
+  'Lecco','Livorno','Lodi','Lucca','Macerata','Mantova','Massa-Carrara','Matera',
+  'Messina','Milano','Modena','Monza e Brianza','Napoli','Novara','Nuoro','Oristano',
+  'Padova','Palermo','Parma','Pavia','Perugia','Pesaro e Urbino','Pescara','Piacenza',
+  'Pisa','Pistoia','Pordenone','Potenza','Prato','Ragusa','Ravenna','Reggio Calabria',
+  'Reggio Emilia','Rieti','Rimini','Roma','Rovigo','Salerno','Sassari','Savona',
+  'Siena','Siracusa','Sondrio','Taranto','Teramo','Terni','Torino',
+  'Trapani','Trento','Treviso','Trieste','Udine','Varese','Venezia',
+  'Vercelli','Verona','Vibo Valentia','Vicenza','Viterbo',
 ];
 
 export default function RegistrazionePage() {
@@ -30,7 +39,7 @@ export default function RegistrazionePage() {
     confermaPassword: '',
     city: '',
     professione: '',
-    categoria: '' as ProfessionCategory | '',
+    provincia: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPw, setShowPw] = useState(false);
@@ -49,7 +58,7 @@ export default function RegistrazionePage() {
     if (form.password !== form.confermaPassword) e.confermaPassword = 'Le password non coincidono';
     if (!form.city) e.city = 'Seleziona una città';
     if (!form.professione.trim()) e.professione = 'Professione richiesta';
-    if (!form.categoria) e.categoria = 'Seleziona una categoria';
+    if (!form.provincia) e.provincia = 'Seleziona una provincia';
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -67,10 +76,10 @@ export default function RegistrazionePage() {
         password: form.password,
         city: form.city,
         professione: form.professione.trim(),
-        categoria: form.categoria as ProfessionCategory,
+        categoria: 'Avvocato', // default; category is not surfaced in UX
       });
 
-      log(newUser, 'user_registered', `Account registrato: ${newUser.name} (${form.categoria})`);
+      log(newUser, 'user_registered', `Account registrato: ${newUser.name} (${form.professione.trim()}, ${form.provincia})`);
 
       setSuccess(true);
       login(newUser);
@@ -262,7 +271,7 @@ export default function RegistrazionePage() {
               )}
             </div>
 
-            {/* Professione + Categoria */}
+            {/* Professione + Provincia */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-ndp-text mb-1.5">Professione</label>
@@ -279,16 +288,16 @@ export default function RegistrazionePage() {
                 {errors.professione && <p className="text-red-500 text-xs mt-1">{errors.professione}</p>}
               </div>
               <div>
-                <label className="block text-xs font-semibold text-ndp-text mb-1.5">Categoria BNI</label>
+                <label className="block text-xs font-semibold text-ndp-text mb-1.5">Provincia</label>
                 <select
-                  value={form.categoria}
-                  onChange={(e) => field('categoria', e.target.value as ProfessionCategory)}
-                  className={`w-full px-3 py-2.5 rounded-xl border text-sm transition-colors appearance-none bg-white ${errors.categoria ? 'border-red-400 bg-red-50' : 'border-ndp-border focus:border-ndp-blue'} focus:outline-none`}
+                  value={form.provincia}
+                  onChange={(e) => field('provincia', e.target.value)}
+                  className={`w-full px-3 py-2.5 rounded-xl border text-sm transition-colors appearance-none bg-white ${errors.provincia ? 'border-red-400 bg-red-50' : 'border-ndp-border focus:border-ndp-blue'} focus:outline-none`}
                 >
                   <option value="">Seleziona...</option>
-                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {PROVINCE_ITALIANE.map((p) => <option key={p} value={p}>{p}</option>)}
                 </select>
-                {errors.categoria && <p className="text-red-500 text-xs mt-1">{errors.categoria}</p>}
+                {errors.provincia && <p className="text-red-500 text-xs mt-1">{errors.provincia}</p>}
               </div>
             </div>
 

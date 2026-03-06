@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Award, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import { X, Award, Info } from 'lucide-react';
 import { createReference } from '@/lib/storage/references';
 import { addMessage } from '@/lib/storage/messages';
 import { log } from '@/lib/logger';
@@ -39,7 +39,6 @@ export default function DaiReferenceModal({ conversationId, professionalId, onCl
     contactInfo: '',
     notes: '',
     urgency: 'media' as UrgencyLevel,
-    estimatedValue: '',
     hasConsent: false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -71,7 +70,6 @@ export default function DaiReferenceModal({ conversationId, professionalId, onCl
         contactInfo: form.contactInfo.trim(),
         notes: form.notes.trim(),
         urgency: form.urgency,
-        estimatedValue: form.estimatedValue ? parseFloat(form.estimatedValue) : undefined,
         hasConsent: form.hasConsent,
       });
 
@@ -87,7 +85,6 @@ export default function DaiReferenceModal({ conversationId, professionalId, onCl
 
       log(user, 'reference_created', `Referenza inviata a ${pro?.name ?? 'professionista'}: ${form.contactName} (${form.contactType})`, {
         referenceId: ref.id,
-        value: form.estimatedValue ? parseFloat(form.estimatedValue) : 0,
         urgency: form.urgency,
       });
 
@@ -124,8 +121,8 @@ export default function DaiReferenceModal({ conversationId, professionalId, onCl
           <div className="flex gap-2.5 bg-ndp-bg rounded-xl p-3">
             <Info className="w-4 h-4 text-ndp-blue shrink-0 mt-0.5" />
             <p className="text-xs text-ndp-muted leading-relaxed">
-              La referenza sarà verificata dal Responsabile di Zona prima di contribuire al punteggio.
-              Una referenza approvata vale <span className="font-semibold text-ndp-blue">+40 punti</span>.
+              <span className="font-semibold text-ndp-blue">+10 punti immediati</span> per ogni referenza inviata.
+              Se approvata dal Responsabile di Zona, ricevi <span className="font-semibold text-ndp-gold-dark">+30 punti bonus</span> (totale +40).
             </p>
           </div>
 
@@ -191,38 +188,23 @@ export default function DaiReferenceModal({ conversationId, professionalId, onCl
             {errors.notes && <p className="text-red-500 text-xs mt-1">{errors.notes}</p>}
           </div>
 
-          {/* Urgency + Value */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-ndp-text mb-1.5">Urgenza</label>
-              <div className="flex gap-1.5">
-                {URGENCY_LEVELS.map(({ value, label, color }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setForm((f) => ({ ...f, urgency: value }))}
-                    className={clsx(
-                      'flex-1 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all',
-                      form.urgency === value ? color : 'border-ndp-border text-ndp-muted hover:border-gray-300'
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-ndp-text mb-1.5">Valore stimato (€)</label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ndp-muted text-sm">€</span>
-                <input
-                  type="number"
-                  value={form.estimatedValue}
-                  onChange={(e) => setForm((f) => ({ ...f, estimatedValue: e.target.value }))}
-                  placeholder="0"
-                  className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-ndp-border focus:border-ndp-blue focus:outline-none text-sm"
-                />
-              </div>
+          {/* Urgency */}
+          <div>
+            <label className="block text-xs font-bold text-ndp-text mb-1.5">Urgenza</label>
+            <div className="flex gap-1.5">
+              {URGENCY_LEVELS.map(({ value, label, color }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, urgency: value }))}
+                  className={clsx(
+                    'flex-1 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all',
+                    form.urgency === value ? color : 'border-ndp-border text-ndp-muted hover:border-gray-300'
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
 

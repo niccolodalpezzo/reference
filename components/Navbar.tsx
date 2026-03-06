@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, Sparkles, User, LogOut, ChevronDown, MapPin, MessageSquare, UserPlus } from 'lucide-react';
+import { Menu, X, Sparkles, User, LogOut, ChevronDown, MapPin, MessageSquare, UserPlus, Shield } from 'lucide-react';
 import Image from 'next/image';
 import clsx from 'clsx';
 import { useAuth } from '@/context/AuthContext';
@@ -20,6 +20,8 @@ export default function Navbar() {
   useEffect(() => {
     if (user?.role === 'member') {
       setUnreadCount(getTotalUnread(user.id));
+    } else {
+      setUnreadCount(0);
     }
   }, [user, pathname]);
 
@@ -29,14 +31,29 @@ export default function Navbar() {
     router.push('/');
   };
 
-  const handleProtectedLink = (href: string, requiredRole: string) => {
-    if (!user) {
-      router.push(`/login?from=${requiredRole}`);
-    } else {
-      router.push(href);
-    }
-    setOpen(false);
-  };
+  const isGuest = !user;
+  const isMember = user?.role === 'member';
+  const isZone = user?.role === 'zone_manager';
+
+  const navLink = (href: string, label: string, icon: React.ReactNode, badge?: number) => (
+    <Link
+      href={href}
+      className={clsx(
+        'relative flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium transition-all rounded-lg',
+        pathname?.startsWith(href)
+          ? 'text-ndp-blue bg-ndp-blue/5'
+          : 'text-gray-600 hover:text-ndp-blue hover:bg-gray-50'
+      )}
+    >
+      {icon}
+      {label}
+      {badge != null && badge > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
+    </Link>
+  );
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-ndp-border shadow-sm">
@@ -53,75 +70,10 @@ export default function Navbar() {
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-0.5">
-            <Link
-              href="/assistente"
-              className={clsx(
-                'flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium transition-all rounded-lg',
-                pathname?.startsWith('/assistente')
-                  ? 'text-ndp-blue bg-ndp-blue/5'
-                  : 'text-gray-600 hover:text-ndp-blue hover:bg-gray-50'
-              )}
-            >
-              <Sparkles size={14} />
-              Assistente
-            </Link>
-
-            <Link
-              href="/incontri"
-              className={clsx(
-                'flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium transition-all rounded-lg',
-                pathname?.startsWith('/incontri')
-                  ? 'text-ndp-blue bg-ndp-blue/5'
-                  : 'text-gray-600 hover:text-ndp-blue hover:bg-gray-50'
-              )}
-            >
-              <MapPin size={14} />
-              Incontri
-            </Link>
-
-            <button
-              onClick={() => handleProtectedLink('/professionisti/dashboard', 'member')}
-              className={clsx(
-                'flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium transition-all rounded-lg',
-                pathname?.startsWith('/professionisti')
-                  ? 'text-ndp-blue bg-ndp-blue/5'
-                  : 'text-gray-600 hover:text-ndp-blue hover:bg-gray-50'
-              )}
-            >
-              Professionisti
-            </button>
-
-            {user?.role === 'member' && (
-              <Link
-                href="/messaggi"
-                className={clsx(
-                  'relative flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium transition-all rounded-lg',
-                  pathname?.startsWith('/messaggi')
-                    ? 'text-ndp-blue bg-ndp-blue/5'
-                    : 'text-gray-600 hover:text-ndp-blue hover:bg-gray-50'
-                )}
-              >
-                <MessageSquare size={14} />
-                Messaggi
-                {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </Link>
-            )}
-
-            <button
-              onClick={() => handleProtectedLink('/resp-zona', 'zone_manager')}
-              className={clsx(
-                'flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium transition-all rounded-lg',
-                pathname?.startsWith('/resp-zona')
-                  ? 'text-ndp-gold-dark bg-ndp-gold-light/30'
-                  : 'text-gray-600 hover:text-ndp-gold-dark hover:bg-gray-50'
-              )}
-            >
-              Resp. di Zona
-            </button>
+            {navLink('/assistente', 'Assistente', <Sparkles size={14} />)}
+            {navLink('/eventi', 'Eventi', <MapPin size={14} />)}
+            {isMember && navLink('/messaggi', 'Messaggi', <MessageSquare size={14} />, unreadCount)}
+            {isZone && navLink('/resp-zona', 'Area Zona', <Shield size={14} />)}
           </nav>
 
           {/* Right: auth */}
@@ -145,10 +97,13 @@ export default function Navbar() {
                       <p className="text-[10px] text-ndp-muted capitalize">{user.role.replace('_', ' ')}</p>
                       {user.zone && <p className="text-[10px] text-ndp-muted">{user.zone}</p>}
                     </div>
-                    {user.role === 'member' && (
+                    {isMember && (
                       <>
                         <Link href="/professionisti/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-xs text-ndp-text hover:bg-ndp-bg">
-                          <User size={13} /> La mia area
+                          <User size={13} /> Dashboard
+                        </Link>
+                        <Link href="/professionisti/wizard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-xs text-ndp-text hover:bg-ndp-bg">
+                          <Sparkles size={13} /> Profilo AI
                         </Link>
                         <Link href="/messaggi" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-xs text-ndp-text hover:bg-ndp-bg">
                           <MessageSquare size={13} /> Messaggi
@@ -156,9 +111,9 @@ export default function Navbar() {
                         </Link>
                       </>
                     )}
-                    {user.role === 'zone_manager' && (
+                    {isZone && (
                       <Link href="/resp-zona" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-xs text-ndp-text hover:bg-ndp-bg">
-                        <User size={13} /> Dashboard zona
+                        <Shield size={13} /> Dashboard Zona
                       </Link>
                     )}
                     <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-2 text-xs text-red-600 hover:bg-red-50 w-full">
@@ -192,21 +147,25 @@ export default function Navbar() {
           <Link href="/assistente" onClick={() => setOpen(false)} className={clsx('flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium', pathname?.startsWith('/assistente') ? 'bg-ndp-bg text-ndp-blue' : 'text-gray-700 hover:bg-gray-50')}>
             <Sparkles size={15} /> Assistente AI
           </Link>
-          <Link href="/incontri" onClick={() => setOpen(false)} className={clsx('flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium', pathname?.startsWith('/incontri') ? 'bg-ndp-bg text-ndp-blue' : 'text-gray-700 hover:bg-gray-50')}>
-            <MapPin size={15} /> Incontri BNI
+          <Link href="/eventi" onClick={() => setOpen(false)} className={clsx('flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium', pathname?.startsWith('/eventi') ? 'bg-ndp-bg text-ndp-blue' : 'text-gray-700 hover:bg-gray-50')}>
+            <MapPin size={15} /> Eventi BNI
           </Link>
-          <button onClick={() => handleProtectedLink('/professionisti/dashboard', 'member')} className="flex w-full items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-            Professionisti
-          </button>
-          {user?.role === 'member' && (
+          {isMember && (
             <Link href="/messaggi" onClick={() => setOpen(false)} className={clsx('flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium', pathname?.startsWith('/messaggi') ? 'bg-ndp-bg text-ndp-blue' : 'text-gray-700 hover:bg-gray-50')}>
               <MessageSquare size={15} /> Messaggi
               {unreadCount > 0 && <span className="ml-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{unreadCount}</span>}
             </Link>
           )}
-          <button onClick={() => handleProtectedLink('/resp-zona', 'zone_manager')} className="flex w-full items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-            Resp. di Zona
-          </button>
+          {isMember && (
+            <Link href="/professionisti/dashboard" onClick={() => setOpen(false)} className={clsx('flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium', pathname?.startsWith('/professionisti') ? 'bg-ndp-bg text-ndp-blue' : 'text-gray-700 hover:bg-gray-50')}>
+              <User size={15} /> La mia area
+            </Link>
+          )}
+          {isZone && (
+            <Link href="/resp-zona" onClick={() => setOpen(false)} className={clsx('flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium', pathname?.startsWith('/resp-zona') ? 'bg-ndp-bg text-ndp-blue' : 'text-gray-700 hover:bg-gray-50')}>
+              <Shield size={15} /> Area Zona
+            </Link>
+          )}
           {user ? (
             <button onClick={handleLogout} className="flex w-full items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50">
               <LogOut size={15} /> Logout ({user.name.split(' ')[0]})

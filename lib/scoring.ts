@@ -1,4 +1,4 @@
-import { Professional, Reference, Conversation, AfidabilityScore } from '@/lib/types';
+import { Professional, Reference, Conversation, AfidabilityScore, WizardProfile } from '@/lib/types';
 
 export function computeScore(
   professional: Professional,
@@ -14,11 +14,11 @@ export function computeScore(
   else affidabilita = Math.max(0, Math.round(80 - (rt - 24) * 2));
   affidabilita = Math.min(300, Math.max(0, affidabilita));
 
-  // Riferenze (0–400)
+  // Riferenze (0–400): action-based — +10 on creation (in_verifica), +30 bonus on approval (total 40)
   const myRefs = references.filter((r) => r.toProfessionalId === professional.id);
   const approved = myRefs.filter((r) => r.status === 'approvata');
-  const pending = myRefs.filter((r) => r.status === 'inviata' || r.status === 'in_verifica');
-  const riferenze = Math.min(400, approved.length * 40 + pending.length * 10);
+  const inVerifica = myRefs.filter((r) => r.status === 'in_verifica');
+  const riferenze = Math.min(400, inVerifica.length * 10 + approved.length * 40);
 
   // Attività (0–200)
   const resolved = conversations.filter(
@@ -70,6 +70,20 @@ export function computeScore(
     trendReason,
     computedAt: new Date().toISOString(),
   };
+}
+
+export function computeProfileCompletion(profile: WizardProfile): number {
+  const sections = [
+    !!(profile.firstName && profile.lastName && profile.businessName),
+    profile.mainServices.length > 0,
+    !!(profile.typicalCases && profile.triggerPhrases.length > 0),
+    !!(profile.goals && profile.achievements),
+    !!(profile.idealClientProfile && profile.topClients.length > 0),
+    !!(profile.goodReference && profile.badReference),
+    !!profile.personalInfo,
+  ];
+  const completed = sections.filter(Boolean).length;
+  return Math.round((completed / sections.length) * 100);
 }
 
 export function getResponseSLA(hours: number): 'verde' | 'giallo' | 'rosso' {
