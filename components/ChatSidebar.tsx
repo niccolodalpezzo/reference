@@ -3,27 +3,14 @@
 import { useState, useEffect } from 'react';
 import { getTopProfessionisti } from '@/lib/utils';
 import { Professional } from '@/lib/types';
-import { MessageSquare, Pin, Trash2, Edit3, Star, TrendingUp, Award, Clock, ChevronDown, ChevronUp, Plus, Search, MapPin, Building2 } from 'lucide-react';
-
-interface SavedChat {
-  id: string;
-  title: string;
-  timestamp: string;
-  tags?: string[];
-  pinned?: boolean;
-  messageCount: number;
-}
-
-const SAVED_CHATS_KEY = 'ndp-saved-chats-v1';
-
-function getDemoSavedChats(): SavedChat[] {
-  return [
-    { id: 'sc-1', title: 'Avvocato diritto societario Milano', timestamp: '2026-03-05T10:30:00', tags: ['Avvocato', 'Milano'], pinned: true, messageCount: 6 },
-    { id: 'sc-2', title: 'Commercialista startup Bologna', timestamp: '2026-03-04T14:15:00', tags: ['Commercialista', 'Bologna'], pinned: false, messageCount: 4 },
-    { id: 'sc-3', title: 'Medico di base Napoli', timestamp: '2026-03-03T09:00:00', tags: ['Medico', 'Napoli'], pinned: false, messageCount: 3 },
-    { id: 'sc-4', title: 'Consulente IT cybersecurity', timestamp: '2026-03-01T16:45:00', tags: ['IT', 'Cyber'], pinned: false, messageCount: 8 },
-  ];
-}
+import {
+  SavedChat,
+  getSavedChats,
+  deleteChat as deleteChatStorage,
+  togglePin as togglePinStorage,
+  renameChat as renameChatStorage,
+} from '@/lib/chatStorage';
+import { MessageSquare, Pin, Trash2, Edit3, Star, TrendingUp, Award, Plus, Search, MapPin } from 'lucide-react';
 
 function formatTimestamp(ts: string): string {
   const d = new Date(ts);
@@ -47,7 +34,7 @@ type ActiveTab = 'chats' | 'top';
 interface ChatSidebarProps {
   onLoadChat?: (chatId: string) => void;
   onNewChat?: () => void;
-  currentChatId?: string;
+  currentChatId?: string | null;
   onOpenProfessional?: (pro: Professional) => void;
 }
 
@@ -59,25 +46,17 @@ export default function ChatSidebar({ onLoadChat, onNewChat, currentChatId, onOp
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(SAVED_CHATS_KEY);
-      setChats(saved ? JSON.parse(saved) : getDemoSavedChats());
-    } catch {
-      setChats(getDemoSavedChats());
-    }
+    setChats(getSavedChats());
   }, []);
 
-  const saveChats = (updated: SavedChat[]) => {
-    setChats(updated);
-    localStorage.setItem(SAVED_CHATS_KEY, JSON.stringify(updated));
+  const handleTogglePin = (id: string) => {
+    togglePinStorage(id);
+    setChats(getSavedChats());
   };
 
-  const togglePin = (id: string) => {
-    saveChats(chats.map((c) => c.id === id ? { ...c, pinned: !c.pinned } : c));
-  };
-
-  const deleteChat = (id: string) => {
-    saveChats(chats.filter((c) => c.id !== id));
+  const handleDelete = (id: string) => {
+    deleteChatStorage(id);
+    setChats(getSavedChats());
   };
 
   const startRename = (chat: SavedChat) => {
@@ -87,7 +66,8 @@ export default function ChatSidebar({ onLoadChat, onNewChat, currentChatId, onOp
 
   const finishRename = () => {
     if (editingId && editTitle.trim()) {
-      saveChats(chats.map((c) => c.id === editingId ? { ...c, title: editTitle.trim() } : c));
+      renameChatStorage(editingId, editTitle.trim());
+      setChats(getSavedChats());
     }
     setEditingId(null);
     setEditTitle('');
@@ -125,7 +105,6 @@ export default function ChatSidebar({ onLoadChat, onNewChat, currentChatId, onOp
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         {tab === 'chats' && (
           <div className="p-3 space-y-2">
-            {/* New chat + Search */}
             <div className="flex gap-2 mb-1">
               <button
                 onClick={onNewChat}
@@ -146,7 +125,6 @@ export default function ChatSidebar({ onLoadChat, onNewChat, currentChatId, onOp
               />
             </div>
 
-            {/* Chat list */}
             {filteredChats.length === 0 && (
               <div className="py-8 text-center text-ndp-muted text-xs">
                 Nessuna chat salvata
@@ -184,15 +162,14 @@ export default function ChatSidebar({ onLoadChat, onNewChat, currentChatId, onOp
                         ))}
                         <span className="text-[9px] text-ndp-muted">{chat.messageCount} msg</span>
                       </div>
-                      {/* Actions (visible on hover) */}
                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={(e) => { e.stopPropagation(); togglePin(chat.id); }} className="p-1 rounded text-ndp-muted hover:text-ndp-gold-dark" title="Pin">
+                        <button onClick={(e) => { e.stopPropagation(); handleTogglePin(chat.id); }} className="p-1 rounded text-ndp-muted hover:text-ndp-gold-dark" title="Pin">
                           <Pin size={10} />
                         </button>
                         <button onClick={(e) => { e.stopPropagation(); startRename(chat); }} className="p-1 rounded text-ndp-muted hover:text-ndp-blue" title="Rinomina">
                           <Edit3 size={10} />
                         </button>
-                        <button onClick={(e) => { e.stopPropagation(); deleteChat(chat.id); }} className="p-1 rounded text-ndp-muted hover:text-red-500" title="Elimina">
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete(chat.id); }} className="p-1 rounded text-ndp-muted hover:text-red-500" title="Elimina">
                           <Trash2 size={10} />
                         </button>
                       </div>
