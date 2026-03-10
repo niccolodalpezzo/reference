@@ -10,6 +10,8 @@ export interface AppUser {
   role: 'member' | 'zone_manager';
   city: string | null;
   province: string | null;
+  region: string | null;
+  capoluogo: string | null;
   zone: string | null;
   zone_manager_id: string | null;
   professional_id: string | null;
