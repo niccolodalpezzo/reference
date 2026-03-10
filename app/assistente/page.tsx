@@ -1,11 +1,16 @@
 'use client';
 
-import { Suspense, useState, useCallback } from 'react';
+import { Suspense, useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ChatInterface from '@/components/ChatInterface';
 import ChatSidebar from '@/components/ChatSidebar';
 import ProfessionalDrawer from '@/components/ProfessionalDrawer';
 import { Professional } from '@/lib/types';
+import {
+  getActiveChatId,
+  setActiveChatId,
+  migrateLegacyChat,
+} from '@/lib/chatStorage';
 import { Sparkles, Loader2, PanelRightOpen, PanelRightClose } from 'lucide-react';
 
 function AssistenteContent() {
@@ -13,14 +18,38 @@ function AssistenteContent() {
   const initialQuery = searchParams.get('q') || undefined;
   const [selectedPro, setSelectedPro] = useState<Professional | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  // bump to force sidebar re-render when chat list changes
+  const [sidebarKey, setSidebarKey] = useState(0);
+
+  // Migrate old single-chat data on first mount
+  useEffect(() => {
+    migrateLegacyChat();
+    const saved = getActiveChatId();
+    if (saved) setCurrentChatId(saved);
+  }, []);
 
   const handleOpenProfessional = useCallback((pro: Professional) => {
     setSelectedPro(pro);
   }, []);
 
+  const handleLoadChat = useCallback((chatId: string) => {
+    setCurrentChatId(chatId);
+    setActiveChatId(chatId);
+  }, []);
+
+  const handleNewChat = useCallback(() => {
+    setCurrentChatId(null);
+    setActiveChatId(null);
+  }, []);
+
+  const handleChatUpdated = useCallback((chatId: string) => {
+    setCurrentChatId(chatId);
+    setSidebarKey((k) => k + 1);
+  }, []);
+
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-white">
-      {/* Professional drawer */}
       {selectedPro && (
         <ProfessionalDrawer
           professional={selectedPro}
@@ -48,20 +77,24 @@ function AssistenteContent() {
         {/* Chat */}
         <div className="flex-1 min-h-0">
           <ChatInterface
+            key={currentChatId ?? '__new__'}
+            chatId={currentChatId}
             initialQuery={initialQuery}
             onOpenProfessional={handleOpenProfessional}
+            onChatUpdated={handleChatUpdated}
           />
         </div>
       </div>
 
-      {/* Sidebar — desktop only */}
+      {/* Sidebar */}
       {sidebarOpen && (
         <div className="hidden md:flex w-80 shrink-0">
           <ChatSidebar
+            key={sidebarKey}
+            currentChatId={currentChatId}
+            onLoadChat={handleLoadChat}
+            onNewChat={handleNewChat}
             onOpenProfessional={handleOpenProfessional}
-            onNewChat={() => {
-              // Could clear current chat
-            }}
           />
         </div>
       )}

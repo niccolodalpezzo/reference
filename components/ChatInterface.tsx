@@ -5,19 +5,18 @@ import { Send, Network, Loader2, ArrowRight, RotateCcw, Bookmark, BookmarkCheck,
 import clsx from 'clsx';
 import { getProfessionalsByIds } from '@/lib/utils';
 import { Professional } from '@/lib/types';
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  matchedIds?: string[];
-}
+import {
+  ChatMessage,
+  getChatMessages,
+  upsertChat,
+} from '@/lib/chatStorage';
 
 interface ChatInterfaceProps {
+  chatId: string | null;
   initialQuery?: string;
   onOpenProfessional?: (pro: Professional) => void;
+  onChatUpdated?: (chatId: string) => void;
 }
-
-const STORAGE_KEY = 'ndp-chat-v1';
 
 const SUGGESTIONS = [
   { text: 'Avvocato per diritto societario a Milano', icon: '⚖️' },
@@ -47,7 +46,6 @@ const renderText = (text: string): string => {
     .trim();
 };
 
-// Inline professional card for chat results
 function ChatProfessionalCard({ p, rank, onOpen }: { p: Professional; rank: number; onOpen?: (pro: Professional) => void }) {
   return (
     <div
@@ -57,7 +55,6 @@ function ChatProfessionalCard({ p, rank, onOpen }: { p: Professional; rank: numb
       )}
       onClick={() => onOpen?.(p)}
     >
-      {/* Header */}
       <div className="flex items-start gap-3 mb-3">
         <div className={clsx('w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-xs shrink-0', rank === 0 ? 'bg-ndp-blue' : 'bg-ndp-blue/80')}>
           {getInitials(p.name)}
@@ -65,22 +62,16 @@ function ChatProfessionalCard({ p, rank, onOpen }: { p: Professional; rank: numb
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
             <h4 className="text-sm font-semibold text-ndp-text truncate group-hover:text-ndp-blue transition-colors">{p.name}</h4>
-            {p.isTopOfMonth && (
-              <Award size={12} className="text-ndp-gold shrink-0" />
-            )}
+            {p.isTopOfMonth && <Award size={12} className="text-ndp-gold shrink-0" />}
           </div>
           <p className="text-[11px] text-ndp-muted truncate">{p.profession}</p>
           <div className="flex items-center gap-2 mt-1">
-            <span className="flex items-center gap-0.5 text-[10px] text-ndp-muted">
-              <MapPin size={9} /> {p.city}
-            </span>
+            <span className="flex items-center gap-0.5 text-[10px] text-ndp-muted"><MapPin size={9} /> {p.city}</span>
             <span className="text-[10px] text-ndp-muted">·</span>
             <span className="text-[10px] text-ndp-muted truncate">{p.chapter}</span>
           </div>
         </div>
       </div>
-
-      {/* Stats row */}
       <div className="flex items-center gap-3 mb-3 pb-3 border-b border-ndp-border">
         <div className="flex items-center gap-1">
           <Star size={10} className="text-ndp-gold" fill="currentColor" />
@@ -94,18 +85,12 @@ function ChatProfessionalCard({ p, rank, onOpen }: { p: Professional; rank: numb
           </span>
         )}
       </div>
-
-      {/* Specialties (compact) */}
       <div className="flex flex-wrap gap-1 mb-3">
         {p.specialties.slice(0, 3).map((s) => (
           <span key={s} className="text-[10px] bg-ndp-blue/6 text-ndp-blue px-2 py-0.5 rounded-full">{s}</span>
         ))}
-        {p.specialties.length > 3 && (
-          <span className="text-[10px] text-ndp-muted">+{p.specialties.length - 3}</span>
-        )}
+        {p.specialties.length > 3 && <span className="text-[10px] text-ndp-muted">+{p.specialties.length - 3}</span>}
       </div>
-
-      {/* Actions */}
       <div className="flex gap-2">
         <button
           onClick={(e) => { e.stopPropagation(); onOpen?.(p); }}
@@ -125,27 +110,27 @@ function ChatProfessionalCard({ p, rank, onOpen }: { p: Professional; rank: numb
   );
 }
 
-export default function ChatInterface({ initialQuery, onOpenProfessional }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+export default function ChatInterface({ chatId, initialQuery, onOpenProfessional, onChatUpdated }: ChatInterfaceProps) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  const [chatSaved, setChatSaved] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const initialized = useRef(false);
+  const localChatId = useRef<string | null>(chatId);
 
+  // Load messages when chatId changes (or on mount)
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setMessages(JSON.parse(saved));
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    if (messages.length === 0) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-  }, [messages]);
+    if (chatId) {
+      const saved = getChatMessages(chatId);
+      setMessages(saved);
+      localChatId.current = chatId;
+    } else {
+      setMessages([]);
+      localChatId.current = null;
+    }
+  }, [chatId]);
 
   const scrollToBottom = useCallback(() => {
     const container = chatContainerRef.current;
@@ -165,16 +150,17 @@ export default function ChatInterface({ initialQuery, onOpenProfessional }: Chat
     }
   }, [initialQuery]);
 
+  const persistMessages = useCallback((msgs: ChatMessage[]) => {
+    if (msgs.length === 0) return;
+    const id = upsertChat(localChatId.current, msgs);
+    localChatId.current = id;
+    onChatUpdated?.(id);
+  }, [onChatUpdated]);
+
   const clearChat = () => {
     setMessages([]);
-    setChatSaved(false);
-    localStorage.removeItem(STORAGE_KEY);
-  };
-
-  const saveChat = () => {
-    setChatSaved(true);
-    // In a real app, save to backend. For demo, just toggle the icon.
-    setTimeout(() => setChatSaved(false), 3000);
+    localChatId.current = null;
+    onChatUpdated?.('');
   };
 
   const extractMatchedIds = (text: string): string[] => {
@@ -191,13 +177,18 @@ export default function ChatInterface({ initialQuery, onOpenProfessional }: Chat
     const content = text || input.trim();
     if (!content || isLoading) return;
 
-    const userMsg: Message = { role: 'user', content };
+    const userMsg: ChatMessage = { role: 'user', content };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput('');
     setIsLoading(true);
 
-    const assistantMsg: Message = { role: 'assistant', content: '' };
+    // Persist immediately so sidebar updates
+    const id = upsertChat(localChatId.current, newMessages);
+    localChatId.current = id;
+    onChatUpdated?.(id);
+
+    const assistantMsg: ChatMessage = { role: 'assistant', content: '' };
     setMessages([...newMessages, assistantMsg]);
 
     try {
@@ -232,20 +223,19 @@ export default function ChatInterface({ initialQuery, onOpenProfessional }: Chat
       const matchedIds = extractMatchedIds(fullText);
       const cleanContent = cleanText(fullText);
 
-      setMessages((prev) => {
-        const updated = [...prev];
-        updated[updated.length - 1] = { role: 'assistant', content: cleanContent, matchedIds };
-        return updated;
-      });
+      const finalMessages: ChatMessage[] = [
+        ...newMessages,
+        { role: 'assistant', content: cleanContent, matchedIds },
+      ];
+      setMessages(finalMessages);
+      persistMessages(finalMessages);
     } catch {
-      setMessages((prev) => {
-        const updated = [...prev];
-        updated[updated.length - 1] = {
-          role: 'assistant',
-          content: 'Mi dispiace, si è verificato un errore. Riprova tra un momento.',
-        };
-        return updated;
-      });
+      const errorMessages: ChatMessage[] = [
+        ...newMessages,
+        { role: 'assistant', content: 'Mi dispiace, si è verificato un errore. Riprova tra un momento.' },
+      ];
+      setMessages(errorMessages);
+      persistMessages(errorMessages);
     } finally {
       setIsLoading(false);
       inputRef.current?.focus();
@@ -268,22 +258,13 @@ export default function ChatInterface({ initialQuery, onOpenProfessional }: Chat
         </div>
         <div className="flex items-center gap-1">
           {messages.length > 0 && (
-            <>
-              <button
-                onClick={saveChat}
-                title="Salva ricerca"
-                className={clsx('p-2 rounded-lg transition-colors', chatSaved ? 'text-ndp-gold-dark bg-ndp-gold/10' : 'text-ndp-muted hover:text-ndp-blue hover:bg-ndp-bg')}
-              >
-                {chatSaved ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
-              </button>
-              <button
-                onClick={clearChat}
-                title="Nuova conversazione"
-                className="p-2 rounded-lg text-ndp-muted hover:text-ndp-blue hover:bg-ndp-bg transition-colors"
-              >
-                <RotateCcw size={14} />
-              </button>
-            </>
+            <button
+              onClick={clearChat}
+              title="Nuova conversazione"
+              className="p-2 rounded-lg text-ndp-muted hover:text-ndp-blue hover:bg-ndp-bg transition-colors"
+            >
+              <RotateCcw size={14} />
+            </button>
           )}
         </div>
       </div>
@@ -291,7 +272,6 @@ export default function ChatInterface({ initialQuery, onOpenProfessional }: Chat
       {/* Messages area */}
       <div ref={chatContainerRef} className="flex-1 overflow-y-auto scrollbar-thin">
         <div className="max-w-3xl mx-auto px-5 py-6 space-y-5">
-
           {/* Welcome screen */}
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4 animate-fade-in">
@@ -301,9 +281,7 @@ export default function ChatInterface({ initialQuery, onOpenProfessional }: Chat
                   <Sparkles size={28} className="text-white" />
                 </div>
               </div>
-              <h2 className="font-display text-xl font-bold text-ndp-text mb-1.5">
-                Come posso aiutarti?
-              </h2>
+              <h2 className="font-display text-xl font-bold text-ndp-text mb-1.5">Come posso aiutarti?</h2>
               <p className="text-ndp-muted text-sm max-w-sm leading-relaxed mb-8">
                 Descrivi la tua esigenza. Ti trovo il professionista giusto nella rete BNI.
               </p>
@@ -332,20 +310,17 @@ export default function ChatInterface({ initialQuery, onOpenProfessional }: Chat
             return (
               <div key={i} className="animate-fade-in">
                 {msg.role === 'user' ? (
-                  /* User message */
                   <div className="flex justify-end">
                     <div className="bg-ndp-blue text-white px-5 py-3 rounded-2xl rounded-br-md text-sm leading-relaxed max-w-[75%] shadow-sm">
                       {msg.content}
                     </div>
                   </div>
                 ) : (
-                  /* Assistant message */
                   <div className="flex gap-3">
                     <div className="w-8 h-8 bg-ndp-blue/8 rounded-xl flex items-center justify-center shrink-0 mt-1">
                       <Sparkles size={13} className="text-ndp-blue" />
                     </div>
                     <div className="flex-1 min-w-0 space-y-3">
-                      {/* Text content */}
                       <div className="bg-ndp-bg/60 px-5 py-3.5 rounded-2xl rounded-tl-md text-sm text-ndp-text leading-relaxed border border-ndp-border/50">
                         {msg.content ? (
                           <div className="whitespace-pre-wrap">{renderText(msg.content)}</div>
@@ -357,7 +332,6 @@ export default function ChatInterface({ initialQuery, onOpenProfessional }: Chat
                         )}
                       </div>
 
-                      {/* Professional cards */}
                       {professionals.length > 0 && (
                         <div className="animate-slide-up">
                           <div className="flex items-center gap-2 mb-3 px-1">
@@ -368,18 +342,12 @@ export default function ChatInterface({ initialQuery, onOpenProfessional }: Chat
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {professionals.map((p, idx) => (
-                              <ChatProfessionalCard
-                                key={p.id}
-                                p={p}
-                                rank={idx}
-                                onOpen={onOpenProfessional}
-                              />
+                              <ChatProfessionalCard key={p.id} p={p} rank={idx} onOpen={onOpenProfessional} />
                             ))}
                           </div>
                         </div>
                       )}
 
-                      {/* Follow-up suggestions after assistant response with results */}
                       {msg.content && !isLoading && i === messages.length - 1 && professionals.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 pt-1 animate-fade-in">
                           {FOLLOW_UP_SUGGESTIONS.slice(0, 3).map((s) => (
