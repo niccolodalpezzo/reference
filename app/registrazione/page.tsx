@@ -6,29 +6,7 @@ import Link from 'next/link';
 import { User, Mail, Lock, MapPin, Briefcase, ArrowRight, CheckCircle2, Sparkles, Shield } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { appendLog } from '@/lib/db/logs';
-
-const PROVINCE_ITALIANE = [
-  'Agrigento','Alessandria','Ancona','Aosta','Arezzo','Ascoli Piceno','Asti','Avellino',
-  'Bari','Belluno','Benevento','Bergamo','Biella','Bologna','Bolzano','Brescia','Brindisi',
-  'Cagliari','Caltanissetta','Campobasso','Caserta','Catania','Catanzaro','Chieti','Como',
-  'Cosenza','Cremona','Crotone','Cuneo','Enna','Fermo','Ferrara','Firenze','Foggia',
-  'Frosinone','Genova','Gorizia','Grosseto','Imperia','Isernia','La Spezia','Latina',
-  'Lecce','Lecco','Livorno','Lodi','Lucca','Macerata','Mantova','Massa-Carrara','Matera',
-  'Messina','Milano','Modena','Monza e Brianza','Napoli','Novara','Nuoro','Oristano',
-  'Padova','Palermo','Parma','Pavia','Perugia','Pesaro e Urbino','Pescara','Piacenza',
-  'Pisa','Pistoia','Pordenone','Potenza','Prato','Ragusa','Ravenna','Reggio Calabria',
-  'Reggio Emilia','Rieti','Rimini','Roma','Rovigo','Salerno','Sassari','Savona',
-  'Siena','Siracusa','Sondrio','Taranto','Teramo','Terni','Torino','Trapani','Trento',
-  'Treviso','Trieste','Udine','Varese','Venezia','Vercelli','Verona','Vibo Valentia',
-  'Vicenza','Viterbo',
-];
-
-const PROVINCE_ZONE: Record<string, string> = {
-  'Milano': 'Zona Nord','Monza e Brianza': 'Zona Nord','Bergamo': 'Zona Nord',
-  'Brescia': 'Zona Nord','Como': 'Zona Nord','Varese': 'Zona Nord','Lecco': 'Zona Nord',
-  'Torino': 'Zona Nord-Ovest','Roma': 'Zona Centro','Napoli': 'Zona Sud',
-  'Palermo': 'Zona Sud',
-};
+import { PROVINCE_ITALIANE, getTerritoryForProvincia } from '@/lib/territoryMap';
 
 export default function RegistrazionePage() {
   const router = useRouter();
@@ -63,7 +41,8 @@ export default function RegistrazionePage() {
     try {
       const supabase = createClient();
       const fullName = `${form.nome.trim()} ${form.cognome.trim()}`;
-      const zone = PROVINCE_ZONE[form.provincia] ?? 'Zona Nord';
+      const { regione, capoluogo } = getTerritoryForProvincia(form.provincia);
+      const zone = regione;
 
       // 1. Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -83,6 +62,8 @@ export default function RegistrazionePage() {
         role: 'member',
         province: form.provincia,
         city: form.provincia,
+        region: regione,
+        capoluogo,
         zone,
       });
 
@@ -118,8 +99,8 @@ export default function RegistrazionePage() {
           <h2 className="text-2xl font-bold text-ndp-text mb-2">Benvenuto nella rete!</h2>
           <p className="text-ndp-muted mb-4">Account creato con successo.</p>
           <div className="bg-ndp-bg rounded-2xl p-4 mb-6">
-            <p className="text-sm text-ndp-muted mb-1">Zona assegnata</p>
-            <p className="font-semibold text-ndp-blue text-lg">{PROVINCE_ZONE[form.provincia] ?? 'Zona Nord'}</p>
+            <p className="text-sm text-ndp-muted mb-1">Regione assegnata</p>
+            <p className="font-semibold text-ndp-blue text-lg">{getTerritoryForProvincia(form.provincia).regione}</p>
             <p className="text-xs text-ndp-muted mt-1">Provincia: {form.provincia}</p>
           </div>
           <p className="text-sm text-ndp-muted animate-pulse">Reindirizzamento al profilo...</p>
@@ -249,7 +230,7 @@ export default function RegistrazionePage() {
                 {errors.provincia && <p className="text-red-500 text-xs mt-1">{errors.provincia}</p>}
                 {form.provincia && (
                   <p className="text-xs text-ndp-muted mt-1">
-                    Zona: <span className="font-semibold text-ndp-blue">{PROVINCE_ZONE[form.provincia] ?? 'Zona Nord'}</span>
+                    Regione: <span className="font-semibold text-ndp-blue">{getTerritoryForProvincia(form.provincia).regione}</span>
                   </p>
                 )}
               </div>

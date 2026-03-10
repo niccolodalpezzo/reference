@@ -11,8 +11,10 @@ create table if not exists public.user_profiles (
   name text not null,
   role text not null default 'member' check (role in ('member', 'zone_manager')),
   city text,
-  province text,
-  zone text,
+  province text,         -- provincia del professionista (solo per member)
+  region text,           -- regione italiana (derivata dalla provincia)
+  capoluogo text,        -- capoluogo di regione (per member: regione assegnata; per zone_manager: territorio gestito)
+  zone text,             -- deprecato — mantenuto per compatibilità
   zone_manager_id uuid references public.user_profiles(id),
   professional_id text,
   registered_at timestamptz default now()

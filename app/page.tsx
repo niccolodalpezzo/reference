@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import TopProfessionisti from '@/components/TopProfessionisti';
-import { Sparkles, UserCheck, Network, ShieldCheck, Users, TrendingUp, Building2, MessageSquare, Search } from 'lucide-react';
+import { Sparkles, UserCheck, Network, ShieldCheck, Users, TrendingUp, Building2, MessageSquare, Search, Calendar } from 'lucide-react';
 
 const HOW_IT_WORKS = [
   {
@@ -43,7 +43,6 @@ export default function HomePage() {
       <section className="bg-ndp-blue pt-20 pb-24 px-4 relative overflow-hidden">
         <div className="absolute inset-0 network-bg opacity-10 pointer-events-none" />
         <div className="max-w-5xl mx-auto relative text-center">
-          {/* Logo grande */}
           <div className="flex justify-center mb-8">
             <Image
               src="/logo.svg"
@@ -63,7 +62,7 @@ export default function HomePage() {
             Trova il professionista giusto in secondi grazie all&apos;AI. Non filtri, non directory statiche — intelligenza semantica sulla rete BNI.
           </p>
 
-          {/* CTA */}
+          {/* CTA — solo flussi pubblici: AI, Events, Diventa Professionista */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/assistente"
@@ -73,16 +72,17 @@ export default function HomePage() {
               Prova l&apos;Assistente AI
             </Link>
             <Link
-              href="/login?from=member"
+              href="/eventi"
               className="inline-flex items-center justify-center gap-2 border border-white/30 text-white font-medium px-8 py-4 rounded-xl hover:bg-white/10 transition-all text-sm"
             >
-              Accedi come Professionista
+              <Calendar size={16} />
+              Prossimi eventi
             </Link>
             <Link
-              href="/login?from=zone_manager"
+              href="/registrazione"
               className="inline-flex items-center justify-center gap-2 border border-ndp-gold/50 text-ndp-gold font-medium px-8 py-4 rounded-xl hover:bg-ndp-gold/10 transition-all text-sm"
             >
-              Resp. di Zona
+              Diventa Professionista
             </Link>
           </div>
 
@@ -164,7 +164,7 @@ export default function HomePage() {
       {/* Top Professionisti del Mese */}
       <TopProfessionisti />
 
-      {/* CTA finale */}
+      {/* CTA finale — solo Professionisti */}
       <section className="bg-ndp-blue py-20 px-4">
         <div className="max-w-4xl mx-auto text-center relative">
           <div className="absolute inset-0 network-bg opacity-10 pointer-events-none" />
@@ -176,17 +176,17 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center relative">
             <Link
-              href="/login?from=member"
+              href="/registrazione"
               className="inline-flex items-center justify-center gap-2 bg-white text-ndp-blue font-bold px-8 py-4 rounded-xl hover:bg-white/90 transition-all text-sm"
             >
-              Accedi alla tua area
+              Crea il tuo profilo
             </Link>
             <Link
-              href="/assistente"
+              href="/login"
               className="inline-flex items-center justify-center gap-2 border border-white/30 text-white font-medium px-8 py-4 rounded-xl hover:bg-white/10 transition-all text-sm"
             >
               <Sparkles size={15} />
-              Prova l&apos;Assistente
+              Hai già un account? Accedi
             </Link>
           </div>
         </div>
