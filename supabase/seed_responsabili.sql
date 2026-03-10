@@ -72,7 +72,7 @@ BEGIN
         id, user_id, identity_data,
         provider, last_sign_in_at, created_at, updated_at
       ) VALUES (
-        r.email,
+        gen_random_uuid(),
         v_id,
         jsonb_build_object(
           'sub',            v_id::text,
