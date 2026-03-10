@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { professionals } from '@/lib/data';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 const SYSTEM_PROMPT = `Sei l'assistente AI di NDP Reference. Il tuo unico compito è trovare i professionisti più adatti dalla rete NDP.
 
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
 
     const systemPrompt = SYSTEM_PROMPT.replace('[PROFESSIONALS_DATA]', professionalsJson);
 
-    const stream = await openai.chat.completions.create({
+    const stream = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },

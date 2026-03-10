@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 const SECTION_PROMPTS: Record<string, string> = {
   identity: 'Stai aiutando un professionista BNI a descrivere la propria identità professionale. Migliora il testo rendendolo più chiaro, professionale e convincente. Mantieni la prima persona.',
@@ -37,7 +39,7 @@ ${context ? `Contesto aggiuntivo: ${context}\n` : ''}
 Testo da migliorare:
 ${currentValue}`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
