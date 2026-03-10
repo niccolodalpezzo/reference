@@ -8,8 +8,9 @@ import { getConversations, Conversation } from '@/lib/db/conversations';
 import { computeProfileCompletion } from '@/lib/scoring';
 import { WizardProfile } from '@/lib/types';
 import Link from 'next/link';
+import ReteContatti from '@/components/ReteContatti';
 import {
-  MessageSquare, Clock, Eye, Edit3, Award, ChevronRight, Search,
+  MessageSquare, Clock, Edit3, ChevronRight, Search,
 } from 'lucide-react';
 
 function DashboardContent() {
@@ -179,6 +180,10 @@ function DashboardContent() {
             </div>
           )}
         </div>
+
+        {/* Rete Contatti */}
+        <ReteContatti />
+
       </div>
     </div>
   );

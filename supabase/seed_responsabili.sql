@@ -70,7 +70,8 @@ BEGIN
       -- Crea identità email (necessaria per il login)
       INSERT INTO auth.identities (
         id, user_id, identity_data,
-        provider, last_sign_in_at, created_at, updated_at
+        provider, provider_id,
+        last_sign_in_at, created_at, updated_at
       ) VALUES (
         gen_random_uuid(),
         v_id,
@@ -80,7 +81,8 @@ BEGIN
           'email_verified', true,
           'phone_verified', false
         ),
-        'email', now(), now(), now()
+        'email', r.email,
+        now(), now(), now()
       );
 
       RAISE NOTICE 'Creato: %', r.email;
