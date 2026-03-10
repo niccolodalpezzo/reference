@@ -1,10 +1,16 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Network, Loader2, ArrowRight, RotateCcw, Bookmark, BookmarkCheck, Sparkles, ChevronRight, Star, MapPin, Phone, Mail, Award, TrendingUp, CheckCircle2 } from 'lucide-react';
+import {
+  Send, Loader2, RotateCcw, Bookmark, BookmarkCheck,
+  Sparkles, ChevronRight, Star, MapPin, Award, TrendingUp,
+  CheckCircle2, Lock, MessageCircle, ArrowRight,
+} from 'lucide-react';
 import clsx from 'clsx';
 import { getProfessionalsByIds } from '@/lib/utils';
 import { Professional } from '@/lib/types';
+import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -19,22 +25,6 @@ interface ChatInterfaceProps {
 
 const STORAGE_KEY = 'ndp-chat-v1';
 
-const SUGGESTIONS = [
-  { text: 'Avvocato per diritto societario a Milano', icon: '⚖️' },
-  { text: 'Commercialista esperto in startup', icon: '📊' },
-  { text: 'Agenzia immobiliare per vendita a Firenze', icon: '🏠' },
-  { text: 'Consulente IT per cybersecurity', icon: '🔒' },
-  { text: 'Dentista specializzato in estetica a Roma', icon: '🦷' },
-  { text: 'Coach executive per team commerciale', icon: '🎯' },
-];
-
-const FOLLOW_UP_SUGGESTIONS = [
-  'Mostrami le specialità di questo professionista',
-  'Ci sono alternative nella stessa città?',
-  'Chi ha il rating più alto nella categoria?',
-  'Puoi spiegarmi meglio perché lo consigli?',
-];
-
 function getInitials(name: string) {
   return name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
 }
@@ -47,85 +37,256 @@ const renderText = (text: string): string => {
     .trim();
 };
 
-// Inline professional card for chat results
-function ChatProfessionalCard({ p, rank, onOpen }: { p: Professional; rank: number; onOpen?: (pro: Professional) => void }) {
+// ─── Professional card ────────────────────────────────────────────────────────
+function ChatProfessionalCard({
+  p,
+  rank,
+  onOpen,
+  isGuest,
+  aiReasoning,
+}: {
+  p: Professional;
+  rank: number;
+  onOpen?: (pro: Professional) => void;
+  isGuest: boolean;
+  aiReasoning?: string;
+}) {
+  const isFirst = rank === 0;
+
   return (
     <div
       className={clsx(
-        'bg-white rounded-2xl border p-4 transition-all hover:shadow-lg cursor-pointer group',
-        rank === 0 ? 'border-ndp-blue/30 shadow-md ring-1 ring-ndp-blue/10' : 'border-ndp-border shadow-sm'
+        'bg-white rounded-2xl border transition-all duration-200 group',
+        'p-5',
+        isFirst
+          ? 'border-ndp-blue/30 shadow-[0_4px_20px_rgba(34,0,204,0.10)] ring-1 ring-ndp-blue/8'
+          : 'border-ndp-border shadow-md hover:shadow-xl',
+        isGuest && 'opacity-90',
       )}
-      onClick={() => onOpen?.(p)}
+      onClick={() => !isGuest && onOpen?.(p)}
+      style={{ cursor: isGuest ? 'default' : 'pointer' }}
     >
+      {/* Guest locked badge */}
+      {isGuest && (
+        <div className="flex items-center gap-1.5 mb-3">
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest bg-ndp-gold/12 text-ndp-gold-dark border border-ndp-gold/25 rounded-lg px-2.5 py-1">
+            <Lock size={9} />
+            Disponibile ai professionisti registrati
+          </span>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="flex items-start gap-3 mb-3">
-        <div className={clsx('w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-xs shrink-0', rank === 0 ? 'bg-ndp-blue' : 'bg-ndp-blue/80')}>
+      <div className="flex items-start gap-3.5 mb-4">
+        <div
+          className={clsx(
+            'w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 transition-transform group-hover:scale-105',
+            isFirst ? 'bg-ndp-blue shadow-sm' : 'bg-ndp-blue/80',
+          )}
+        >
           {getInitials(p.name)}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <h4 className="text-sm font-semibold text-ndp-text truncate group-hover:text-ndp-blue transition-colors">{p.name}</h4>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h4 className={clsx('text-sm font-semibold text-ndp-text truncate', !isGuest && 'group-hover:text-ndp-blue transition-colors')}>
+              {p.name}
+            </h4>
             {p.isTopOfMonth && (
-              <Award size={12} className="text-ndp-gold shrink-0" />
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-ndp-gold/15 text-ndp-gold-dark border border-ndp-gold/20 rounded-lg px-2 py-0.5">
+                <Award size={9} />
+                Top del mese
+              </span>
             )}
           </div>
-          <p className="text-[11px] text-ndp-muted truncate">{p.profession}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="flex items-center gap-0.5 text-[10px] text-ndp-muted">
-              <MapPin size={9} /> {p.city}
+          <p className="text-xs text-ndp-muted mt-0.5 truncate">{p.profession}</p>
+          <div className="flex items-center gap-3 mt-1.5">
+            <span className="flex items-center gap-1 text-[11px] text-ndp-muted">
+              <MapPin size={10} /> {p.city}
             </span>
-            <span className="text-[10px] text-ndp-muted">·</span>
-            <span className="text-[10px] text-ndp-muted truncate">{p.chapter}</span>
+            {p.chapter && (
+              <span className="text-[11px] text-ndp-muted truncate">· {p.chapter}</span>
+            )}
           </div>
         </div>
       </div>
 
       {/* Stats row */}
-      <div className="flex items-center gap-3 mb-3 pb-3 border-b border-ndp-border">
+      <div className="flex items-center gap-4 mb-4 pb-4 border-b border-ndp-border/70">
         <div className="flex items-center gap-1">
-          <Star size={10} className="text-ndp-gold" fill="currentColor" />
+          <Star size={11} className="text-ndp-gold" fill="currentColor" />
           <span className="text-xs font-bold text-ndp-text">{p.rating}</span>
         </div>
-        <span className="text-[10px] text-ndp-muted">{p.referralsGiven} referral</span>
-        <span className="text-[10px] text-ndp-muted">{p.yearsInBNI}a in BNI</span>
+        <span className="text-[11px] text-ndp-muted">{p.referralsGiven} referral</span>
+        <span className="text-[11px] text-ndp-muted">{p.yearsInBNI} anni BNI</span>
         {p.monthScore && (
-          <span className="ml-auto flex items-center gap-0.5 text-[10px] font-bold text-ndp-blue">
-            <TrendingUp size={9} /> {p.monthScore}
+          <span className="ml-auto flex items-center gap-1 text-[11px] font-bold text-ndp-blue">
+            <TrendingUp size={10} /> {p.monthScore} pt
           </span>
         )}
       </div>
 
-      {/* Specialties (compact) */}
-      <div className="flex flex-wrap gap-1 mb-3">
+      {/* Specialties */}
+      <div className="flex flex-wrap gap-1.5 mb-4">
         {p.specialties.slice(0, 3).map((s) => (
-          <span key={s} className="text-[10px] bg-ndp-blue/6 text-ndp-blue px-2 py-0.5 rounded-full">{s}</span>
+          <span key={s} className="text-[10px] bg-ndp-blue/7 text-ndp-blue px-2.5 py-1 rounded-lg font-medium">
+            {s}
+          </span>
         ))}
         {p.specialties.length > 3 && (
-          <span className="text-[10px] text-ndp-muted">+{p.specialties.length - 3}</span>
+          <span className="text-[10px] text-ndp-muted px-1 py-1">+{p.specialties.length - 3}</span>
         )}
       </div>
 
+      {/* AI Reasoning */}
+      {aiReasoning && (
+        <div className="bg-ndp-blue/4 rounded-xl px-3.5 py-2.5 mb-4 border border-ndp-blue/8">
+          <p className="text-[10px] uppercase tracking-widest text-ndp-blue/50 font-semibold mb-1">
+            Perché te lo consiglio
+          </p>
+          <p className="text-[11px] text-ndp-text/70 leading-relaxed">{aiReasoning}</p>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex gap-2">
-        <button
-          onClick={(e) => { e.stopPropagation(); onOpen?.(p); }}
-          className="flex-1 flex items-center justify-center gap-1.5 text-[11px] font-bold bg-ndp-blue text-white py-2 rounded-xl hover:bg-ndp-blue-dark transition-all"
-        >
-          Apri profilo <ChevronRight size={11} />
-        </button>
-        <a
-          href={`tel:${p.phone}`}
-          onClick={(e) => e.stopPropagation()}
-          className="flex items-center justify-center gap-1 text-[11px] bg-ndp-bg text-ndp-text py-2 px-3 rounded-xl hover:bg-ndp-border transition-all border border-ndp-border"
-        >
-          <Phone size={11} /> Chiama
-        </a>
+        {isGuest ? (
+          <Link
+            href="/registrazione"
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold bg-ndp-blue/8 text-ndp-blue py-2.5 rounded-xl hover:bg-ndp-blue hover:text-white transition-all duration-200 border border-ndp-blue/15"
+          >
+            <Lock size={11} />
+            Sblocca profilo
+          </Link>
+        ) : (
+          <>
+            <button
+              onClick={(e) => { e.stopPropagation(); onOpen?.(p); }}
+              className="flex-1 flex items-center justify-center gap-1.5 text-xs font-bold bg-ndp-blue text-white py-2.5 rounded-xl hover:bg-ndp-blue-dark transition-all duration-200 shadow-sm hover:shadow-md"
+            >
+              Apri profilo <ChevronRight size={11} />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onOpen?.(p); }}
+              className="flex items-center justify-center gap-1 text-xs bg-ndp-bg text-ndp-text py-2.5 px-3.5 rounded-xl hover:bg-ndp-border transition-all border border-ndp-border"
+            >
+              <MessageCircle size={11} />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
+// ─── Guest teaser panel ───────────────────────────────────────────────────────
+function GuestTeaserPanel() {
+  return (
+    <div className="mt-2 animate-fade-in">
+      <div className="bg-gradient-to-br from-ndp-blue/6 via-ndp-bg to-ndp-bg border border-ndp-blue/15 rounded-2xl px-6 py-5">
+        <div className="flex items-start gap-3.5">
+          <div className="w-9 h-9 bg-ndp-blue/10 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+            <Sparkles size={16} className="text-ndp-blue" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-ndp-text mb-1">
+              Stai vedendo una preview dell&apos;Assistente AI
+            </p>
+            <p className="text-xs text-ndp-muted leading-relaxed mb-4">
+              Registrandoti come Professionista puoi aprire i profili completi,
+              salvare le ricerche e iniziare conversazioni dirette.
+            </p>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/registrazione"
+                className="inline-flex items-center gap-2 bg-ndp-blue text-white text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-ndp-blue-dark transition-all shadow-sm"
+              >
+                Registrati gratuitamente
+                <ArrowRight size={12} />
+              </Link>
+              <Link
+                href="/login"
+                className="text-xs text-ndp-blue font-medium hover:underline"
+              >
+                Accedi
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Welcome screen ───────────────────────────────────────────────────────────
+function WelcomeScreen({ isGuest, onSend }: { isGuest: boolean; onSend: (text: string) => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[54vh] text-center px-4 animate-fade-in">
+
+      {/* Guest teaser badge */}
+      {isGuest && (
+        <div className="mb-5 inline-flex items-center gap-2 bg-ndp-gold/10 border border-ndp-gold/25 text-ndp-gold-dark text-[11px] font-semibold rounded-full px-4 py-1.5 animate-bounce-in">
+          <span className="w-1.5 h-1.5 bg-ndp-gold rounded-full" />
+          Anteprima gratuita · Registrati per sbloccare tutto
+        </div>
+      )}
+
+      {/* Icon */}
+      <div className="relative mb-7">
+        <div className="absolute inset-0 bg-ndp-blue/8 rounded-3xl blur-2xl scale-150" />
+        <div className="relative w-18 h-18 w-[72px] h-[72px] bg-ndp-blue rounded-3xl flex items-center justify-center shadow-[0_8px_32px_rgba(34,0,204,0.25)]">
+          <Sparkles size={32} className="text-white" />
+        </div>
+        {/* Active dot */}
+        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+          <span className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse-slow" />
+        </div>
+      </div>
+
+      {/* Badge */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-ndp-blue/60 bg-ndp-blue/8 px-3 py-1 rounded-full">
+          Assistente AI
+        </span>
+      </div>
+
+      {/* Title */}
+      <h2 className="font-display text-3xl font-bold text-ndp-text mb-3 leading-tight">
+        Descrivi il tuo bisogno
+      </h2>
+      <p className="text-ndp-muted text-base max-w-md leading-relaxed mb-10">
+        Ti trovo il professionista giusto nella rete BNI in linguaggio naturale.
+      </p>
+
+      {/* Example card */}
+      <div
+        className="w-full max-w-lg bg-ndp-bg/80 border border-ndp-border rounded-2xl px-5 py-4 text-left cursor-pointer hover:border-ndp-blue/30 hover:bg-white hover:shadow-sm transition-all duration-200 group"
+        onClick={() => onSend("Ho trovato una vecchia borsa vintage ma la pelle è rovinata. Cerco qualcuno che possa sistemarla.")}
+      >
+        <p className="text-[10px] font-bold uppercase tracking-widest text-ndp-muted mb-2">
+          Esempio di richiesta
+        </p>
+        <p className="text-sm text-ndp-text/80 italic leading-relaxed group-hover:text-ndp-text transition-colors">
+          &ldquo;Ho trovato una vecchia borsa vintage ma la pelle è rovinata.
+          Cerco qualcuno che possa sistemarla.&rdquo;
+        </p>
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-ndp-border/60">
+          <span className="text-[10px] text-ndp-muted font-medium">Problema</span>
+          <span className="text-[10px] text-ndp-muted/40">→</span>
+          <span className="text-[10px] text-ndp-muted font-medium">Contesto</span>
+          <span className="text-[10px] text-ndp-muted/40">→</span>
+          <span className="text-[10px] text-ndp-muted font-medium">Risultato desiderato</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export default function ChatInterface({ initialQuery, onOpenProfessional }: ChatInterfaceProps) {
+  const { user } = useAuth();
+  const isGuest = user === null;
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -163,6 +324,7 @@ export default function ChatInterface({ initialQuery, onOpenProfessional }: Chat
       initialized.current = true;
       sendMessage(initialQuery);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialQuery]);
 
   const clearChat = () => {
@@ -173,7 +335,6 @@ export default function ChatInterface({ initialQuery, onOpenProfessional }: Chat
 
   const saveChat = () => {
     setChatSaved(true);
-    // In a real app, save to backend. For demo, just toggle the icon.
     setTimeout(() => setChatSaved(false), 3000);
   };
 
@@ -252,30 +413,55 @@ export default function ChatInterface({ initialQuery, onOpenProfessional }: Chat
     }
   };
 
+  // Extract a short reasoning snippet from the last assistant message text
+  const getReasoningForPro = (msgContent: string, proName: string): string => {
+    const lines = msgContent.split('\n').filter(Boolean);
+    const relevant = lines.find(
+      (l) => l.toLowerCase().includes(proName.split(' ')[0].toLowerCase()) && l.length > 30
+    );
+    return relevant ? renderText(relevant).slice(0, 130) : '';
+  };
+
+  const hasResults = messages.some(
+    (m) => m.role === 'assistant' && m.matchedIds && m.matchedIds.length > 0
+  );
+
   return (
     <div className="flex flex-col h-full bg-white">
-      {/* Chat header bar */}
-      <div className="px-5 py-3 border-b border-ndp-border flex items-center gap-3 bg-white shrink-0">
-        <div className="w-8 h-8 bg-ndp-blue rounded-xl flex items-center justify-center">
-          <Sparkles size={14} className="text-white" />
+      {/* ── Header bar ── */}
+      <div className="px-5 py-3.5 border-b border-ndp-border flex items-center gap-3 bg-white shrink-0">
+        <div className="w-9 h-9 bg-ndp-blue rounded-xl flex items-center justify-center shadow-sm">
+          <Sparkles size={15} className="text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="font-display font-semibold text-ndp-text text-sm">Assistente AI</h2>
+          <div className="flex items-center gap-2.5">
+            <h2 className="font-display font-bold text-ndp-text text-sm">Assistente AI</h2>
+            {isGuest && (
+              <span className="text-[10px] font-bold uppercase tracking-widest bg-amber-50 text-amber-600 border border-amber-200 rounded-full px-2 py-0.5">
+                Preview
+              </span>
+            )}
+          </div>
           <p className="text-[10px] text-ndp-muted flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-            Online — Professionisti verificati BNI
+            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse-slow" />
+            Online · Professionisti verificati BNI
           </p>
         </div>
         <div className="flex items-center gap-1">
           {messages.length > 0 && (
             <>
-              <button
-                onClick={saveChat}
-                title="Salva ricerca"
-                className={clsx('p-2 rounded-lg transition-colors', chatSaved ? 'text-ndp-gold-dark bg-ndp-gold/10' : 'text-ndp-muted hover:text-ndp-blue hover:bg-ndp-bg')}
-              >
-                {chatSaved ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
-              </button>
+              {!isGuest && (
+                <button
+                  onClick={saveChat}
+                  title="Salva ricerca"
+                  className={clsx(
+                    'p-2 rounded-lg transition-colors',
+                    chatSaved ? 'text-ndp-gold-dark bg-ndp-gold/10' : 'text-ndp-muted hover:text-ndp-blue hover:bg-ndp-bg'
+                  )}
+                >
+                  {chatSaved ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
+                </button>
+              )}
               <button
                 onClick={clearChat}
                 title="Nuova conversazione"
@@ -288,38 +474,13 @@ export default function ChatInterface({ initialQuery, onOpenProfessional }: Chat
         </div>
       </div>
 
-      {/* Messages area */}
+      {/* ── Messages area ── */}
       <div ref={chatContainerRef} className="flex-1 overflow-y-auto scrollbar-thin">
-        <div className="max-w-3xl mx-auto px-5 py-6 space-y-5">
+        <div className="max-w-3xl mx-auto px-5 py-8 space-y-6">
 
           {/* Welcome screen */}
           {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4 animate-fade-in">
-              <div className="relative mb-6">
-                <div className="absolute inset-0 bg-ndp-blue/8 rounded-3xl blur-xl scale-150" />
-                <div className="relative w-16 h-16 bg-ndp-blue rounded-2xl flex items-center justify-center shadow-lg">
-                  <Sparkles size={28} className="text-white" />
-                </div>
-              </div>
-              <h2 className="font-display text-xl font-bold text-ndp-text mb-1.5">
-                Come posso aiutarti?
-              </h2>
-              <p className="text-ndp-muted text-sm max-w-sm leading-relaxed mb-8">
-                Descrivi la tua esigenza. Ti trovo il professionista giusto nella rete BNI.
-              </p>
-              <div className="grid grid-cols-2 gap-2.5 w-full max-w-xl">
-                {SUGGESTIONS.map((s) => (
-                  <button
-                    key={s.text}
-                    onClick={() => sendMessage(s.text)}
-                    className="text-left text-xs text-ndp-text bg-ndp-bg px-4 py-3.5 rounded-2xl border border-ndp-border hover:border-ndp-blue/30 hover:bg-white hover:shadow-sm transition-all duration-150 flex items-start gap-2.5 group"
-                  >
-                    <span className="text-base shrink-0">{s.icon}</span>
-                    <span className="leading-snug group-hover:text-ndp-blue transition-colors">{s.text}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <WelcomeScreen isGuest={isGuest} onSend={sendMessage} />
           )}
 
           {/* Messages list */}
@@ -328,25 +489,27 @@ export default function ChatInterface({ initialQuery, onOpenProfessional }: Chat
               msg.role === 'assistant' && msg.matchedIds && msg.matchedIds.length > 0
                 ? getProfessionalsByIds(msg.matchedIds)
                 : [];
+            const isLast = i === messages.length - 1;
+            const hasProCards = professionals.length > 0;
 
             return (
               <div key={i} className="animate-fade-in">
                 {msg.role === 'user' ? (
-                  /* User message */
+                  // ── User bubble ──
                   <div className="flex justify-end">
-                    <div className="bg-ndp-blue text-white px-5 py-3 rounded-2xl rounded-br-md text-sm leading-relaxed max-w-[75%] shadow-sm">
+                    <div className="bg-ndp-blue text-white px-5 py-3.5 rounded-2xl rounded-br-sm text-sm leading-relaxed max-w-[75%] shadow-sm">
                       {msg.content}
                     </div>
                   </div>
                 ) : (
-                  /* Assistant message */
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 bg-ndp-blue/8 rounded-xl flex items-center justify-center shrink-0 mt-1">
-                      <Sparkles size={13} className="text-ndp-blue" />
+                  // ── Assistant message ──
+                  <div className="flex gap-3.5">
+                    <div className="w-9 h-9 bg-ndp-blue/8 rounded-xl flex items-center justify-center shrink-0 mt-1 border border-ndp-blue/10">
+                      <Sparkles size={14} className="text-ndp-blue" />
                     </div>
-                    <div className="flex-1 min-w-0 space-y-3">
-                      {/* Text content */}
-                      <div className="bg-ndp-bg/60 px-5 py-3.5 rounded-2xl rounded-tl-md text-sm text-ndp-text leading-relaxed border border-ndp-border/50">
+                    <div className="flex-1 min-w-0 space-y-4">
+                      {/* Text bubble */}
+                      <div className="bg-ndp-bg/50 px-5 py-4 rounded-2xl rounded-tl-sm text-sm text-ndp-text leading-relaxed border border-ndp-border/60">
                         {msg.content ? (
                           <div className="whitespace-pre-wrap">{renderText(msg.content)}</div>
                         ) : (
@@ -358,13 +521,18 @@ export default function ChatInterface({ initialQuery, onOpenProfessional }: Chat
                       </div>
 
                       {/* Professional cards */}
-                      {professionals.length > 0 && (
-                        <div className="animate-slide-up">
-                          <div className="flex items-center gap-2 mb-3 px-1">
-                            <CheckCircle2 size={12} className="text-green-500" />
-                            <span className="text-[11px] font-semibold text-ndp-text">
-                              {professionals.length} professionist{professionals.length === 1 ? 'a' : 'i'} trovat{professionals.length === 1 ? 'o' : 'i'}
+                      {hasProCards && (
+                        <div className="animate-slide-up space-y-3">
+                          <div className="flex items-center gap-2 px-1">
+                            <CheckCircle2 size={13} className="text-green-500" />
+                            <span className="text-xs font-semibold text-ndp-text">
+                              {professionals.length} professionist{professionals.length === 1 ? 'a' : 'i'} selezionat{professionals.length === 1 ? 'o' : 'i'}
                             </span>
+                            {isGuest && (
+                              <span className="ml-auto text-[10px] text-ndp-muted italic">
+                                Accedi per sbloccare i profili
+                              </span>
+                            )}
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {professionals.map((p, idx) => (
@@ -373,24 +541,14 @@ export default function ChatInterface({ initialQuery, onOpenProfessional }: Chat
                                 p={p}
                                 rank={idx}
                                 onOpen={onOpenProfessional}
+                                isGuest={isGuest}
+                                aiReasoning={msg.content ? getReasoningForPro(msg.content, p.name) : undefined}
                               />
                             ))}
                           </div>
-                        </div>
-                      )}
 
-                      {/* Follow-up suggestions after assistant response with results */}
-                      {msg.content && !isLoading && i === messages.length - 1 && professionals.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 pt-1 animate-fade-in">
-                          {FOLLOW_UP_SUGGESTIONS.slice(0, 3).map((s) => (
-                            <button
-                              key={s}
-                              onClick={() => sendMessage(s)}
-                              className="text-[10px] text-ndp-blue bg-ndp-blue/5 border border-ndp-blue/15 px-3 py-1.5 rounded-full hover:bg-ndp-blue/10 transition-all font-medium"
-                            >
-                              {s}
-                            </button>
-                          ))}
+                          {/* Guest teaser panel after results */}
+                          {isGuest && isLast && <GuestTeaserPanel />}
                         </div>
                       )}
                     </div>
@@ -402,19 +560,22 @@ export default function ChatInterface({ initialQuery, onOpenProfessional }: Chat
         </div>
       </div>
 
-      {/* Input bar */}
-      <div className="border-t border-ndp-border bg-white px-5 py-4 shrink-0">
+      {/* ── Input bar ── */}
+      <div className="border-t border-ndp-border bg-white px-5 py-5 shrink-0">
         <div className="max-w-3xl mx-auto">
           <div
             className={clsx(
-              'flex items-center gap-3 bg-ndp-bg rounded-2xl px-4 py-3',
-              'border-2 transition-all duration-200',
+              'flex items-center gap-3 rounded-2xl px-5 py-4 transition-all duration-200',
+              'border-2 bg-ndp-bg',
               isFocused
-                ? 'border-ndp-blue/30 shadow-[0_0_0_4px_rgba(34,0,204,0.06)] bg-white'
-                : 'border-transparent hover:border-ndp-border'
+                ? 'border-ndp-blue bg-white shadow-[0_0_0_4px_rgba(34,0,204,0.08)] shadow-[0_4px_32px_rgba(34,0,204,0.10)]'
+                : 'border-transparent hover:border-ndp-border hover:bg-white'
             )}
           >
-            <Sparkles size={15} className="text-ndp-blue/40 shrink-0" />
+            <Sparkles
+              size={18}
+              className={clsx('shrink-0 transition-colors', isFocused ? 'text-ndp-blue' : 'text-ndp-muted/40')}
+            />
             <input
               ref={inputRef}
               type="text"
@@ -428,26 +589,39 @@ export default function ChatInterface({ initialQuery, onOpenProfessional }: Chat
                   sendMessage();
                 }
               }}
-              placeholder="Descrivi la tua esigenza..."
+              placeholder="Descrivi il tuo bisogno in parole semplici..."
               disabled={isLoading}
-              className="flex-1 bg-transparent text-sm text-ndp-text placeholder-ndp-muted/60 outline-none disabled:opacity-50"
+              className="flex-1 bg-transparent text-sm text-ndp-text placeholder-ndp-muted/50 outline-none disabled:opacity-50 italic placeholder:not-italic"
+              style={{ fontStyle: 'normal' }}
             />
             <button
               onClick={() => sendMessage()}
               disabled={isLoading || !input.trim()}
               className={clsx(
-                'w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200',
+                'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200',
                 input.trim() && !isLoading
                   ? 'bg-ndp-blue text-white shadow-md hover:bg-ndp-blue-dark hover:shadow-lg active:scale-95'
-                  : 'bg-transparent text-ndp-muted/30 cursor-not-allowed'
+                  : 'bg-ndp-bg text-ndp-muted/30 cursor-not-allowed border border-ndp-border'
               )}
             >
               {isLoading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
             </button>
           </div>
-          <p className="text-[10px] text-ndp-muted/50 mt-2 text-center">
-            AI powered · Risposte basate su profili verificati BNI · I dati sono demo
-          </p>
+
+          {/* Guest note or empty spacer */}
+          {isGuest && !hasResults && (
+            <p className="text-[11px] text-ndp-muted/60 mt-2.5 text-center">
+              Stai usando l&apos;Assistente in modalità preview.{' '}
+              <Link href="/login" className="text-ndp-blue hover:underline font-medium">
+                Accedi
+              </Link>{' '}
+              o{' '}
+              <Link href="/registrazione" className="text-ndp-blue hover:underline font-medium">
+                registrati
+              </Link>{' '}
+              per accedere a tutte le funzioni.
+            </p>
+          )}
         </div>
       </div>
     </div>
