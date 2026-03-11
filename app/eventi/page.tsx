@@ -41,12 +41,18 @@ export default function EventiPage() {
 
   // Load events on mount
   useEffect(() => {
-    getActiveEvents().then((data) => {
-      setEvents(data);
-      applyFilter(data, activeFilter);
-      loadCounts(data);
-      setLoading(false);
-    });
+    getActiveEvents()
+      .then((data) => {
+        setEvents(data);
+        applyFilter(data, activeFilter);
+        loadCounts(data);
+      })
+      .catch(() => {
+        // Table may not exist yet in Supabase — show empty state gracefully
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   // Load user registrations when user is available
