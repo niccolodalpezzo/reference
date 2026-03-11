@@ -1,6 +1,7 @@
 'use client';
 
 import { professionals } from '@/lib/data';
+import { WizardProfile } from '@/lib/types';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { use } from 'react';
@@ -8,8 +9,6 @@ import {
   MapPin, Building2, Star, Phone, Mail, Award, TrendingUp, ArrowLeft,
   CheckCircle2, Users, Briefcase, Target, Heart, Lightbulb, Network, Zap
 } from 'lucide-react';
-import { demoMarcoProfile } from '@/lib/memberData';
-
 function getInitials(name: string) {
   return name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
 }
@@ -33,8 +32,8 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
   const pro = professionals.find((p) => p.id === id);
   if (!pro) notFound();
 
-  const isDemoMarco = pro.id === 'demo-marco';
-  const wizard = isDemoMarco ? demoMarcoProfile : null;
+  // wizard data loaded from Supabase (not yet implemented)
+  const wizard = null as WizardProfile | null;
 
   return (
     <div className="min-h-screen bg-ndp-bg">

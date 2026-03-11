@@ -1,33 +1,6 @@
 import { Professional, Chapter } from './types';
 
 export const professionals: Professional[] = [
-  // === DEMO MEMBER ===
-  {
-    id: 'demo-marco',
-    name: 'Marco Mastella',
-    profession: 'Avvocato Civile & Societario',
-    category: 'Avvocato',
-    city: 'Milano',
-    chapter: 'NDP Milano Duomo',
-    phone: '+39 02 1234 5678',
-    email: 'marco@demo.it',
-    bio: 'Avvocato con 12 anni di esperienza in diritto civile e societario. Partner dello Studio Mastella & Associati, specializzato in contrattualistica d\'impresa, M&A e tutela della proprietà intellettuale.',
-    specialties: ['diritto civile', 'diritto societario', 'contratti', 'M&A', 'proprietà intellettuale', 'startup'],
-    yearsInBNI: 4,
-    referralsGiven: 124,
-    rating: 4.8,
-    monthScore: 72,
-    profileScore: 68,
-    activityScore: 75,
-    requestsReceived: 18,
-    requestsFulfilled: 14,
-    avgResponseTime: 1.2,
-    isTopOfMonth: false,
-    profileComplete: false,
-    lastUpdate: '2026-02-18',
-    openRequests: 2,
-  },
-
   // === MILANO ===
   {
     id: 'mi-001',

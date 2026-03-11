@@ -1,5 +1,4 @@
 // Maps Italian cities to BNI zone names
-// In demo, all cities map to Luca Ferrari's zone
 export const cityZoneMap: Record<string, string> = {
   'Milano': 'Zona Nord',
   'Monza': 'Zona Nord',
@@ -19,9 +18,6 @@ export const cityZoneMap: Record<string, string> = {
   'Palermo': 'Zona Sud',
   'Bari': 'Zona Sud',
 };
-
-export const DEMO_ZONE_MANAGER_ID = 'u2';
-export const DEMO_ZONE_MANAGER_NAME = 'Luca Ferrari';
 
 export function getZoneForCity(city: string): string {
   return cityZoneMap[city] ?? 'Zona Nord';

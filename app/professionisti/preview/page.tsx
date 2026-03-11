@@ -3,7 +3,7 @@
 import AuthGuard from '@/components/AuthGuard';
 import { useAuth } from '@/context/AuthContext';
 import { getProfessionalById } from '@/lib/utils';
-import { demoMarcoProfile } from '@/lib/memberData';
+import { WizardProfile } from '@/lib/types';
 import Link from 'next/link';
 import { ArrowLeft, MapPin, Building2, Star, Edit3, Phone, Mail, Award } from 'lucide-react';
 
@@ -14,17 +14,18 @@ function getInitials(name: string) {
 function PreviewContent() {
   const { user } = useAuth();
   const professional = user?.professional_id ? getProfessionalById(user.professional_id) : null;
-  const wizard = demoMarcoProfile;
+  // wizard data loaded from Supabase (not yet implemented)
+  const wizard = null as WizardProfile | null;
 
-  const name = professional?.name ?? user?.name ?? 'Marco Mastella';
-  const profession = professional?.profession ?? 'Avvocato';
-  const city = professional?.city ?? 'Milano';
-  const chapter = professional?.chapter ?? 'NDP Milano Centro';
+  const name = professional?.name ?? user?.name ?? '';
+  const profession = professional?.profession ?? '';
+  const city = professional?.city ?? '';
+  const chapter = professional?.chapter ?? '';
   const bio = professional?.bio ?? '';
-  const rating = professional?.rating ?? 4.7;
+  const rating = professional?.rating ?? 0;
   const referralsGiven = professional?.referralsGiven ?? 0;
-  const yearsInBNI = professional?.yearsInBNI ?? 4;
-  const specialties = professional?.specialties ?? wizard.mainServices;
+  const yearsInBNI = professional?.yearsInBNI ?? 0;
+  const specialties = professional?.specialties ?? [];
   const isTopOfMonth = professional?.isTopOfMonth ?? false;
 
   return (
@@ -113,14 +114,14 @@ function PreviewContent() {
               </div>
             </div>
 
-            {wizard.typicalCases && (
+            {wizard?.typicalCases && (
               <div>
                 <h3 className="font-semibold text-ndp-text text-sm mb-2">Casi tipici che gestisco</h3>
                 <p className="text-ndp-muted text-sm leading-relaxed">{wizard.typicalCases}</p>
               </div>
             )}
 
-            {wizard.goodReference && (
+            {wizard?.goodReference && (
               <div className="bg-ndp-bg rounded-xl p-4 border border-ndp-border">
                 <h3 className="font-semibold text-ndp-text text-xs uppercase tracking-wide mb-2">
                   Come presentarmi
