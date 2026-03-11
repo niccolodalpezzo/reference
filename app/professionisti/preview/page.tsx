@@ -24,7 +24,7 @@ function PreviewContent() {
   const bio = professional?.bio ?? '';
   const rating = professional?.rating ?? 0;
   const referralsGiven = professional?.referralsGiven ?? 0;
-  const yearsInBNI = professional?.yearsInBNI ?? 0;
+  const yearsInNDP = professional?.yearsInNDP ?? 0;
   const specialties = professional?.specialties ?? [];
   const isTopOfMonth = professional?.isTopOfMonth ?? false;
 
@@ -85,7 +85,7 @@ function PreviewContent() {
             {[
               { label: 'Rating', value: `★ ${rating}` },
               { label: 'Referral dati', value: referralsGiven },
-              { label: 'Anni in BNI', value: yearsInBNI },
+              { label: 'Anni in NDP', value: yearsInNDP },
             ].map(({ label, value }) => (
               <div key={label} className="py-4 text-center">
                 <div className="font-bold text-ndp-text text-lg">{value}</div>

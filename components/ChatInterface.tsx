@@ -106,7 +106,7 @@ function ChatProfessionalCard({
           <span className="text-xs font-bold text-ndp-text">{p.rating}</span>
         </div>
         <span className="text-[11px] text-ndp-muted">{p.referralsGiven} referral</span>
-        <span className="text-[11px] text-ndp-muted">{p.yearsInBNI} anni BNI</span>
+        <span className="text-[11px] text-ndp-muted">{p.yearsInNDP} anni NDP</span>
         {p.monthScore && (
           <span className="ml-auto flex items-center gap-1 text-[11px] font-bold text-ndp-blue">
             <TrendingUp size={10} /> {p.monthScore} pt
@@ -214,7 +214,7 @@ function WelcomeScreen({ isGuest, onSend }: { isGuest: boolean; onSend: (text: s
       </span>
       <h2 className="font-display text-3xl font-bold text-ndp-text mb-3 leading-tight">Descrivi il tuo bisogno</h2>
       <p className="text-ndp-muted text-base max-w-md leading-relaxed mb-10">
-        Ti trovo il professionista giusto nella rete BNI in linguaggio naturale.
+        Ti trovo il professionista giusto nella rete NDP in linguaggio naturale.
       </p>
       <div
         className="w-full max-w-lg bg-ndp-bg/80 border border-ndp-border rounded-2xl px-5 py-4 text-left cursor-pointer hover:border-ndp-blue/30 hover:bg-white hover:shadow-sm transition-all duration-200 group"
@@ -383,7 +383,7 @@ export default function ChatInterface({ chatId, initialQuery, onOpenProfessional
           </div>
           <p className="text-[10px] text-ndp-muted flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse-slow" />
-            Online · Professionisti verificati BNI
+            Online · Professionisti verificati NDP
           </p>
         </div>
         {messages.length > 0 && (

@@ -36,7 +36,7 @@ const WHY_DIFFERENT = [
     icon: ShieldCheck,
     accent: 'text-ndp-gold',
     accentBg: 'bg-ndp-gold/15',
-    title: 'Verificati dalla rete BNI',
+    title: 'Verificati dalla rete NDP',
     desc: 'Non pagano per essere presenti. Ogni professionista ha guadagnato la sua posizione con referral reali e rating della comunità.',
   },
   {
@@ -83,7 +83,7 @@ const MOCK_EVENTS = [
     id: '1',
     city: 'Milano',
     region: 'Lombardia',
-    title: 'BNI Chapter Milano Centro — Networking Morning',
+    title: 'NDP Chapter Milano Centro — Networking Morning',
     date: '18 Marzo 2026',
     label: 'Networking',
   },
@@ -91,7 +91,7 @@ const MOCK_EVENTS = [
     id: '2',
     city: 'Roma',
     region: 'Lazio',
-    title: 'Workshop AI per Professionisti BNI — Roma',
+    title: 'Workshop AI per Professionisti NDP — Roma',
     date: '25 Marzo 2026',
     label: 'Workshop',
   },
@@ -99,7 +99,7 @@ const MOCK_EVENTS = [
     id: '3',
     city: 'Torino',
     region: 'Piemonte',
-    title: 'BNI Torino — Incontro Mensile di Chapter',
+    title: 'NDP Torino — Incontro Mensile di Chapter',
     date: '2 Aprile 2026',
     label: 'Chapter',
   },
@@ -124,7 +124,7 @@ export default function HomePage() {
               {/* Trust badge */}
               <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white/90 text-xs font-semibold px-4 py-2 rounded-full mb-8">
                 <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                Rete BNI Verificata · 1.200+ Professionisti
+                Rete NDP Verificata · 1.200+ Professionisti
               </div>
 
               {/* H1 */}
@@ -216,7 +216,7 @@ export default function HomePage() {
                   ))}
                   <div className="flex items-center gap-1.5 mt-1 px-1">
                     <CheckCircle2 size={11} className="text-green-400" />
-                    <span className="text-white/40 text-[10px]">Tutti verificati BNI</span>
+                    <span className="text-white/40 text-[10px]">Tutti verificati NDP</span>
                   </div>
                 </div>
               </div>
@@ -282,7 +282,7 @@ export default function HomePage() {
               </h2>
             </div>
             <p className="text-white/30 text-sm max-w-xs sm:text-right leading-relaxed">
-              Costruita per la rete BNI. Aperta a chiunque abbia un problema da risolvere.
+              Costruita per la rete NDP. Aperta a chiunque abbia un problema da risolvere.
             </p>
           </div>
 
@@ -410,7 +410,7 @@ export default function HomePage() {
                   Trasforma la tua presenza in referral.
                 </h3>
                 <p className="text-white/60 text-sm leading-relaxed mb-7">
-                  Profilo AI completo, ranking mensile, referral qualificati dalla rete BNI. Ogni mese la classifica premia chi lavora meglio.
+                  Profilo AI completo, ranking mensile, referral qualificati dalla rete NDP. Ogni mese la classifica premia chi lavora meglio.
                 </p>
                 <Link
                   href="/registrazione"
@@ -419,7 +419,7 @@ export default function HomePage() {
                   Diventa Professionista <ArrowRight size={14} />
                 </Link>
                 <ul className="space-y-2.5">
-                  {['Profilo AI personalizzato', 'Ranking di merito mensile', 'Referral dalla rete BNI'].map((t) => (
+                  {['Profilo AI personalizzato', 'Ranking di merito mensile', 'Referral dalla rete NDP'].map((t) => (
                     <li key={t} className="flex items-center gap-2.5 text-sm text-white/60">
                       <CheckCircle2 size={15} className="text-ndp-gold shrink-0" />
                       {t}

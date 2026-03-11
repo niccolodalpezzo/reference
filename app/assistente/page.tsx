@@ -75,7 +75,7 @@ function AssistenteContent() {
           ) : (
             <p className="text-[11px] text-white/70 flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-              Professionisti verificati nella rete BNI — ogni risposta è basata su profili reali
+              Professionisti verificati nella rete NDP — ogni risposta è basata su profili reali
             </p>
           )}
           <div className="flex items-center gap-2">

@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
         city: p.city,
         chapter: p.chapter,
         specialties: p.specialties,
-        yearsInBNI: p.yearsInBNI,
+        yearsInNDP: p.yearsInNDP,
         referralsGiven: p.referralsGiven,
         rating: p.rating,
       })),

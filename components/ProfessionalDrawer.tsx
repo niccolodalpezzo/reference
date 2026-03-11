@@ -124,8 +124,8 @@ export default function ProfessionalDrawer({ professional: p, onClose, aiReasons
             </div>
             <div className="w-px bg-white/20" />
             <div className="text-center">
-              <p className="text-white font-bold text-lg">{p.yearsInBNI}y</p>
-              <p className="text-indigo-200 text-[10px]">In BNI</p>
+              <p className="text-white font-bold text-lg">{p.yearsInNDP}y</p>
+              <p className="text-indigo-200 text-[10px]">In NDP</p>
             </div>
             {p.avgResponseTime && (
               <>
