@@ -346,7 +346,7 @@ export default function ProfileWizard({ onSave, userId }: { onSave?: (profile: W
                 <>
                   <TextareaField label="Buona referenza" value={profile.goodReference} onChange={(v) => set('goodReference', v)} section="references" fieldName="Buona referenza" rows={4} placeholder="La migliore referenza che puoi darmi è..." aiActions={[{ label: 'Crea script referral', icon: <MessageSquare size={11} />, action: 'Crea uno script di referral che i colleghi possano usare facilmente' }]} />
                   <TextareaField label="Referenza da evitare" value={profile.badReference} onChange={(v) => set('badReference', v)} section="references" fieldName="Referenza da evitare" rows={3} placeholder="Non ho bisogno di referenze per..." />
-                  <TextareaField label="Come posso aiutare la rete" value={profile.howHelp} onChange={(v) => set('howHelp', v)} section="references" fieldName="Come aiuto la rete" rows={3} placeholder="Cosa offro ai colleghi BNI..." />
+                  <TextareaField label="Come posso aiutare la rete" value={profile.howHelp} onChange={(v) => set('howHelp', v)} section="references" fieldName="Come aiuto la rete" rows={3} placeholder="Cosa offro ai colleghi NDP..." />
                 </>
               )}
               {section.id === 'powerTeam' && (

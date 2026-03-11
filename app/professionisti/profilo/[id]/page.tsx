@@ -67,7 +67,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
               <div className="flex flex-wrap items-center gap-4 text-sm text-white/60">
                 <span className="flex items-center gap-1.5"><MapPin size={13} />{pro.city}</span>
                 <span className="flex items-center gap-1.5"><Building2 size={13} />{pro.chapter}</span>
-                <span className="flex items-center gap-1.5"><Briefcase size={13} />{pro.yearsInBNI} anni in BNI</span>
+                <span className="flex items-center gap-1.5"><Briefcase size={13} />{pro.yearsInNDP} anni in NDP</span>
               </div>
             </div>
           </div>
@@ -253,7 +253,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
               <ul className="space-y-2">
                 <li className="text-xs text-ndp-text flex items-start gap-2">
                   <CheckCircle2 size={12} className="text-green-500 mt-0.5 shrink-0" />
-                  {pro.yearsInBNI} anni di fiducia nella rete BNI
+                  {pro.yearsInNDP} anni di fiducia nella rete NDP
                 </li>
                 <li className="text-xs text-ndp-text flex items-start gap-2">
                   <CheckCircle2 size={12} className="text-green-500 mt-0.5 shrink-0" />

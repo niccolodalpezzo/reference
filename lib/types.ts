@@ -41,7 +41,7 @@ export interface Professional {
   email: string;
   bio: string;
   specialties: string[];
-  yearsInBNI: number;
+  yearsInNDP: number;
   referralsGiven: number;
   rating: number;
   monthScore?: number;

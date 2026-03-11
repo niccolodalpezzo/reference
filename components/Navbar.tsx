@@ -148,7 +148,7 @@ export default function Navbar() {
             <Sparkles size={15} /> Assistente AI
           </Link>
           <Link href="/eventi" onClick={() => setOpen(false)} className={clsx('flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium', pathname?.startsWith('/eventi') ? 'bg-ndp-bg text-ndp-blue' : 'text-gray-700 hover:bg-gray-50')}>
-            <MapPin size={15} /> Eventi BNI
+            <MapPin size={15} /> Eventi NDP
           </Link>
           {isMember && (
             <Link href="/messaggi" onClick={() => setOpen(false)} className={clsx('flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium', pathname?.startsWith('/messaggi') ? 'bg-ndp-bg text-ndp-blue' : 'text-gray-700 hover:bg-gray-50')}>

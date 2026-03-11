@@ -6,13 +6,13 @@ function getOpenAI() {
 }
 
 const SECTION_PROMPTS: Record<string, string> = {
-  identity: 'Stai aiutando un professionista BNI a descrivere la propria identità professionale. Migliora il testo rendendolo più chiaro, professionale e convincente. Mantieni la prima persona.',
-  whatIDo: 'Stai aiutando un professionista BNI a descrivere i casi tipici che gestisce e le frasi che riconoscono un cliente ideale. Rendi il testo più specifico, concreto e orientato ai trigger di referral.',
-  gains: 'Stai aiutando un professionista BNI a compilare la sezione GAINS (Goals, Achievements, Interests, Networks, Skills). Migliora il testo rendendolo autentico, specifico e memorabile.',
-  idealClient: 'Stai aiutando un professionista BNI a descrivere il proprio cliente ideale. Rendi il profilo più preciso, escludendo i clienti non adatti e valorizzando le caratteristiche di chi porta valore.',
-  references: 'Stai aiutando un professionista BNI a descrivere il tipo di referenza che cerca. Rendi il testo chiaro, concreto e actionable per i colleghi del network.',
-  powerTeam: 'Stai aiutando un professionista BNI a descrivere il proprio power team. Migliora il testo rendendolo specifico sui ruoli complementari e sul valore della collaborazione.',
-  personal: 'Stai aiutando un professionista BNI a condividere informazioni personali leggere. Rendi il testo autentico, simpatico e memorabile — deve aiutare le persone a ricordarlo.',
+  identity: 'Stai aiutando un professionista NDP a descrivere la propria identità professionale. Migliora il testo rendendolo più chiaro, professionale e convincente. Mantieni la prima persona.',
+  whatIDo: 'Stai aiutando un professionista NDP a descrivere i casi tipici che gestisce e le frasi che riconoscono un cliente ideale. Rendi il testo più specifico, concreto e orientato ai trigger di referral.',
+  gains: 'Stai aiutando un professionista NDP a compilare la sezione GAINS (Goals, Achievements, Interests, Networks, Skills). Migliora il testo rendendolo autentico, specifico e memorabile.',
+  idealClient: 'Stai aiutando un professionista NDP a descrivere il proprio cliente ideale. Rendi il profilo più preciso, escludendo i clienti non adatti e valorizzando le caratteristiche di chi porta valore.',
+  references: 'Stai aiutando un professionista NDP a descrivere il tipo di referenza che cerca. Rendi il testo chiaro, concreto e actionable per i colleghi del network.',
+  powerTeam: 'Stai aiutando un professionista NDP a descrivere il proprio power team. Migliora il testo rendendolo specifico sui ruoli complementari e sul valore della collaborazione.',
+  personal: 'Stai aiutando un professionista NDP a condividere informazioni personali leggere. Rendi il testo autentico, simpatico e memorabile — deve aiutare le persone a ricordarlo.',
 };
 
 export async function POST(req: NextRequest) {
@@ -32,7 +32,7 @@ REGOLE:
 2. Restituisci SOLO il testo migliorato, senza spiegazioni, senza prefazioni, senza commenti.
 3. Mantieni la lunghezza simile all'originale (±30%).
 4. Non inventare informazioni — migliora solo quello che è già presente.
-5. Usa un tono professionale ma personale, adatto al networking BNI.`;
+5. Usa un tono professionale ma personale, adatto al networking NDP.`;
 
     const userMessage = `Campo: ${fieldName}
 ${context ? `Contesto aggiuntivo: ${context}\n` : ''}

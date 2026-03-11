@@ -1,4 +1,4 @@
-// Maps Italian cities to BNI zone names
+// Maps Italian cities to NDP zone names
 export const cityZoneMap: Record<string, string> = {
   'Milano': 'Zona Nord',
   'Monza': 'Zona Nord',

@@ -107,7 +107,7 @@ export default function ProfessionalCard({ professional: p, compact, highlighted
         <div className="flex items-center gap-1">
           <Award size={11} className="text-ndp-blue-mid" />
           <span className="text-xs text-ndp-muted">
-            <strong className="text-ndp-text">{p.yearsInBNI}</strong>a
+            <strong className="text-ndp-text">{p.yearsInNDP}</strong>a
           </span>
         </div>
         <div className="flex items-center gap-1">

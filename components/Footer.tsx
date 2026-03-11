@@ -25,7 +25,7 @@ export default function Footer() {
                 Powered by AI
               </div>
               <div className="px-3 py-1 bg-white/10 rounded-full text-white/70 text-xs">
-                Network BNI Italia
+                Network NDP Italia
               </div>
             </div>
           </div>
