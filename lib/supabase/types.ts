@@ -15,6 +15,8 @@ export interface Database {
           zone: string | null;
           zone_manager_id: string | null;
           professional_id: string | null;
+          region: string | null;
+          capoluogo: string | null;
           registered_at: string;
         };
         Insert: {
@@ -26,6 +28,8 @@ export interface Database {
           zone?: string | null;
           zone_manager_id?: string | null;
           professional_id?: string | null;
+          region?: string | null;
+          capoluogo?: string | null;
           registered_at?: string;
         };
         Update: Partial<Database['public']['Tables']['user_profiles']['Insert']>;

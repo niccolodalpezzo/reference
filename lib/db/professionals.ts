@@ -29,6 +29,24 @@ export async function searchProfessionals(params: {
   return (data ?? []) as ProfessionalRow[];
 }
 
+export async function getMembersByZoneManager(managerId: string): Promise<ProfessionalRow[]> {
+  const supabase = createClient();
+  // Get professional_ids linked to members of this zone manager
+  const { data: profiles } = await supabase
+    .from('user_profiles')
+    .select('professional_id')
+    .eq('zone_manager_id', managerId)
+    .not('professional_id', 'is', null);
+  if (!profiles?.length) return [];
+  const professionalIds = (profiles as { professional_id: string }[]).map((p) => p.professional_id);
+  const { data } = await supabase
+    .from('professionals')
+    .select('*')
+    .in('id', professionalIds)
+    .order('name');
+  return (data ?? []) as ProfessionalRow[];
+}
+
 export async function getTopProfessionals(limit = 6): Promise<ProfessionalRow[]> {
   const supabase = createClient();
   const { data } = await supabase
