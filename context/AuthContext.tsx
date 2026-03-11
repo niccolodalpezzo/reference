@@ -51,23 +51,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    // Supabase v2: onAuthStateChange emette INITIAL_SESSION immediatamente
-    // all'iscrizione (con o senza sessione attiva), rendendo getSession() ridondante
-    // e fonte di race condition. Usiamo solo onAuthStateChange come fonte unica di verità.
+    // Timeout fallback: se onAuthStateChange non emette INITIAL_SESSION entro 5s
+    // (es. Supabase irraggiungibile), sblocchiamo il loading per mostrare la pagina.
+    const timeout = setTimeout(() => setIsLoading(false), 5000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        clearTimeout(timeout);
         if (session?.user) {
           await loadUserProfile(session.user.id, session.user.email ?? '');
         } else {
           setUser(null);
         }
-        // setIsLoading(false) viene chiamato SEMPRE dopo ogni evento auth,
-        // eliminando ogni possibilità di spinner infinito.
         setIsLoading(false);
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
