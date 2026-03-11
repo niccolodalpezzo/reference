@@ -215,7 +215,7 @@ function PanoramicaTab({ members }: { members: ProfessionalRow[] }) {
         ))}
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-4">
+      <div className="grid sm:grid-cols-3 gap-4">
         <Link href="/resp-zona/membri" className="bg-white rounded-2xl border border-ndp-border p-6 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between group">
           <div>
             <h3 className="font-semibold text-ndp-text mb-1">Lista completa membri</h3>
@@ -227,6 +227,13 @@ function PanoramicaTab({ members }: { members: ProfessionalRow[] }) {
           <div>
             <h3 className="font-semibold text-white mb-1">Assistente AI</h3>
             <p className="text-xs text-white/60">Trova il professionista giusto per una referenza</p>
+          </div>
+          <ChevronRight size={20} className="text-white/60 group-hover:text-white transition-colors" />
+        </Link>
+        <Link href="/resp-zona/eventi" className="bg-ndp-gold rounded-2xl p-6 shadow-sm hover:opacity-95 transition-opacity flex items-center justify-between group">
+          <div>
+            <h3 className="font-semibold text-white mb-1">Gestisci eventi</h3>
+            <p className="text-xs text-white/60">Crea, modifica ed elimina gli eventi della tua zona</p>
           </div>
           <ChevronRight size={20} className="text-white/60 group-hover:text-white transition-colors" />
         </Link>
