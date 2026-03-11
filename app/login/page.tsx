@@ -5,12 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Loader2, Eye, EyeOff, ShieldCheck } from 'lucide-react';
-
-const DEMO_CREDENTIALS = [
-  { label: 'Professionista', email: 'marco@ndp.it', pw: 'demo1234', color: 'bg-ndp-blue' },
-  { label: 'Resp. di Zona', email: 'luca@ndp.it', pw: 'demo1234', color: 'bg-ndp-gold-dark' },
-];
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 function LoginForm() {
   const { login, user, isLoading } = useAuth();
@@ -110,24 +105,7 @@ function LoginForm() {
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-ndp-border">
-            <div className="flex items-center gap-2 text-xs text-ndp-muted mb-3">
-              <ShieldCheck size={13} />
-              Credenziali demo — clicca per compilare automaticamente
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {DEMO_CREDENTIALS.map((c) => (
-                <button key={c.email} onClick={() => { setEmail(c.email); setPassword(c.pw); setError(''); }}
-                  className={`${c.color} text-white rounded-xl px-3 py-2.5 text-xs font-medium hover:opacity-90 transition-opacity text-left`}>
-                  <div className="font-bold mb-0.5">{c.label}</div>
-                  <div className="opacity-75 text-[10px]">{c.email}</div>
-                  <div className="opacity-75 text-[10px]">demo1234</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <p className="text-center text-xs text-ndp-muted mt-4">
+          <p className="text-center text-xs text-ndp-muted mt-6">
             Non hai un account?{' '}
             <Link href="/registrazione" className="text-ndp-blue font-medium hover:underline">Registrati</Link>
           </p>

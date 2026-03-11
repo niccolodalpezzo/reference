@@ -3,10 +3,8 @@
  *
  * Questo script:
  * 1. Applica la migrazione SQL (aggiunge colonne region/capoluogo)
- * 2. Elimina i vecchi account Responsabili non conformi
- * 3. Crea 20 account Responsabili reali (uno per capoluogo di regione)
- * 4. Mantiene i dati demo di contesto (professionisti arricchimento)
- * 5. Aggiorna i professionisti demo con regione/capoluogo corretti
+ * 2. Crea 20 account Responsabili reali (uno per capoluogo di regione)
+ * 3. Aggiorna i professionisti con regione/capoluogo corretti
  *
  * Uso: npx tsx scripts/seed-responsabili.ts
  */
@@ -52,51 +50,6 @@ async function applyMigration() {
     console.log('     (Le colonne potrebbero già esistere — lo script continua comunque)');
   } else {
     console.log('  ✓ Colonne region/capoluogo aggiunte');
-  }
-}
-
-// ─── Elimina vecchi Responsabili non conformi ────────────────────────────────
-
-const EMAIL_VECCHI_RESPONSABILI = [
-  'luca@ndp.it',   // vecchio demo zone_manager
-  'marco@ndp.it',  // vecchio demo member — se vuoi tenerlo come dato di contesto, commentalo
-];
-
-async function rimuoviVecchiResponsabili() {
-  console.log('\n── Rimozione vecchi account demo ───────────────────');
-  const { data: allUsers } = await supabase.auth.admin.listUsers();
-  const users = allUsers?.users ?? [];
-
-  for (const email of EMAIL_VECCHI_RESPONSABILI) {
-    const found = users.find(u => u.email === email);
-    if (!found) {
-      console.log(`  ✓ ${email} non trovato (già rimosso)`);
-      continue;
-    }
-    // Rimuovi profilo e utente auth
-    await supabase.from('user_profiles').delete().eq('id', found.id);
-    const { error } = await supabase.auth.admin.deleteUser(found.id);
-    if (error) {
-      console.error(`  ✗ Errore rimozione ${email}:`, error.message);
-    } else {
-      console.log(`  ✓ ${email} rimosso`);
-    }
-  }
-
-  // Rimuovi tutti gli altri zone_manager non nella nuova lista
-  const nuoveEmail = Object.values(RESPONSABILI).map(r => r.email);
-  const { data: zoneManagers } = await supabase
-    .from('user_profiles')
-    .select('id, name')
-    .eq('role', 'zone_manager');
-
-  for (const zm of zoneManagers ?? []) {
-    const authUser = users.find(u => u.id === zm.id);
-    if (authUser && !nuoveEmail.includes(authUser.email ?? '')) {
-      await supabase.from('user_profiles').delete().eq('id', zm.id);
-      await supabase.auth.admin.deleteUser(zm.id);
-      console.log(`  ✓ Zone manager obsoleto rimosso: ${authUser.email}`);
-    }
   }
 }
 
@@ -286,7 +239,6 @@ async function main() {
   console.log('╚══════════════════════════════════════════════════╝');
 
   await applyMigration();
-  await rimuoviVecchiResponsabili();
   await creaResponsabili();
   await aggiornaProfessionistiDemo();
   await collegaProfessionistiAiResponsabili();

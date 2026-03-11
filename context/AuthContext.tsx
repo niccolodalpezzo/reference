@@ -40,30 +40,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = createClient();
 
   async function loadUserProfile(userId: string, email: string) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('user_profiles')
       .select('*')
       .eq('id', userId)
       .single();
+    if (error) console.error('[AuthContext] loadUserProfile:', error.message);
     if (data) setUser({ ...(data as Omit<AppUser, 'email'>), email, id: userId });
     else setUser(null);
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        loadUserProfile(session.user.id, session.user.email ?? '').finally(() =>
-          setIsLoading(false)
-        );
-      } else {
+    // Supabase v2: onAuthStateChange emette INITIAL_SESSION immediatamente
+    // all'iscrizione (con o senza sessione attiva), rendendo getSession() ridondante
+    // e fonte di race condition. Usiamo solo onAuthStateChange come fonte unica di verità.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (session?.user) {
+          await loadUserProfile(session.user.id, session.user.email ?? '');
+        } else {
+          setUser(null);
+        }
+        // setIsLoading(false) viene chiamato SEMPRE dopo ogni evento auth,
+        // eliminando ogni possibilità di spinner infinito.
         setIsLoading(false);
       }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) await loadUserProfile(session.user.id, session.user.email ?? '');
-      else setUser(null);
-    });
+    );
 
     return () => subscription.unsubscribe();
   // eslint-disable-next-line react-hooks/exhaustive-deps
