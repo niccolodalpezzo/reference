@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import AuthGuard from '@/components/AuthGuard';
-import { getAllProfessionals, ProfessionalRow } from '@/lib/db/professionals';
+import { getMembersByZoneManager, ProfessionalRow } from '@/lib/db/professionals';
 import Link from 'next/link';
 import {
   Users, CheckCircle2, AlertTriangle, TrendingUp,
@@ -192,13 +192,13 @@ function RejectModal({ reference, onClose, onRejected }: {
 
 function PanoramicaTab({ members }: { members: ProfessionalRow[] }) {
   const totalMembers = members.length;
-  const completeProfiles = members.filter((p) => p.profile_complete).length;
-  const avgScore = totalMembers > 0 ? Math.round(members.reduce((s, p) => s + (p.month_score ?? 0), 0) / totalMembers) : 0;
+  const openRequests = members.reduce((s, p) => s + (p.open_requests ?? 0), 0);
+  const topOfMonth = members.filter((p) => p.is_top_of_month).length;
 
   const kpi = [
-    { label: 'Membri totali', value: totalMembers, icon: Users, color: 'text-ndp-blue', bg: 'bg-ndp-blue/5' },
-    { label: 'Profili completi', value: `${completeProfiles}/${totalMembers}`, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'Score medio', value: avgScore, icon: TrendingUp, color: 'text-ndp-gold-dark', bg: 'bg-ndp-gold-light/30' },
+    { label: 'Membri nella zona', value: totalMembers, icon: Users, color: 'text-ndp-blue', bg: 'bg-ndp-blue/5' },
+    { label: 'Richieste aperte', value: openRequests, icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'Top del mese', value: topOfMonth, icon: TrendingUp, color: 'text-ndp-gold-dark', bg: 'bg-ndp-gold-light/30' },
   ];
 
   return (
@@ -538,8 +538,8 @@ function ZonaDashboardContent() {
   const [members, setMembers] = useState<ProfessionalRow[]>([]);
 
   useEffect(() => {
-    getAllProfessionals().then(setMembers);
-  }, []);
+    if (user?.id) getMembersByZoneManager(user.id).then(setMembers);
+  }, [user?.id]);
 
   return (
     <div className="min-h-screen bg-ndp-bg">
