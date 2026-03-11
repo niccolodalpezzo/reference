@@ -37,7 +37,7 @@ export default function Footer() {
               {[
                 { href: '/cerca', label: 'Ricerca AI' },
                 { href: '/professionisti', label: 'Professionisti' },
-                { href: '/capitoli', label: 'Capitoli' },
+                { href: '/eventi', label: 'Eventi' },
               ].map((l) => (
                 <li key={l.href}>
                   <Link

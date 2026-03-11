@@ -285,6 +285,56 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['awards']['Insert']>;
         Relationships: [];
       };
+      events: {
+        Row: {
+          id: string;
+          responsabile_id: string | null;
+          titolo: string;
+          descrizione: string | null;
+          citta: string;
+          indirizzo: string | null;
+          regione: string | null;
+          data_evento: string;
+          orario_evento: string;
+          status: 'attivo' | 'passato' | 'annullato';
+          lat: number | null;
+          lng: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          responsabile_id?: string | null;
+          titolo: string;
+          descrizione?: string | null;
+          citta: string;
+          indirizzo?: string | null;
+          regione?: string | null;
+          data_evento: string;
+          orario_evento: string;
+          status?: 'attivo' | 'passato' | 'annullato';
+          lat?: number | null;
+          lng?: number | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['events']['Insert']>;
+        Relationships: [];
+      };
+      event_registrations: {
+        Row: {
+          id: string;
+          event_id: string;
+          professionista_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          professionista_id: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['event_registrations']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

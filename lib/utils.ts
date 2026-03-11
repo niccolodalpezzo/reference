@@ -1,5 +1,5 @@
-import { Professional, Chapter, ProfessionCategory } from './types';
-import { professionals, chapters } from './data';
+import { Professional, ProfessionCategory } from './types';
+import { professionals } from './data';
 
 export function filterProfessionals(
   category?: string,

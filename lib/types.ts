@@ -56,18 +56,6 @@ export interface Professional {
   openRequests?: number;
 }
 
-export interface Chapter {
-  id: string;
-  name: string;
-  city: string;
-  meetingDay: string;
-  meetingTime: string;
-  memberCount: number;
-  topCategories: string[];
-  founded: number;
-  description: string;
-}
-
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
