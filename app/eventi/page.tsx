@@ -12,10 +12,11 @@ import {
   getActiveEvents,
   registerForEvent,
   unregisterFromEvent,
-  getRegistrationCount,
-  isRegistered as checkIsRegistered,
+  getRegistrationCountsBatch,
+  getUserRegisteredEventIds,
   type EventRow,
 } from '@/lib/db/events';
+import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -346,33 +347,45 @@ export default function EventiPage() {
       .then((data) => {
         setEvents(data);
         setFiltered(data);
-        if (data.length > 0) loadCounts(data);
       })
       .catch(() => {
         setEvents([]);
         setFiltered([]);
       })
       .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Load user registrations when auth resolves ──────────────────────────────
+  // ── Batch-load counts + user registrations whenever events or auth changes ──
   useEffect(() => {
-    if (user && events.length > 0) loadUserRegistrations(events);
+    if (!events.length) return;
+    const ids = events.map((e) => e.id);
+    // Single query for counts — replaces N individual getRegistrationCount() calls
+    getRegistrationCountsBatch(ids).then(setRegistrationCounts);
+    // Single query for user's registrations
+    if (user) {
+      getUserRegisteredEventIds(user.id, ids).then((set) => setRegisteredIds(set));
+    }
+  }, [events, user]);
+
+  // ── Realtime: refresh counts when any registration changes ─────────────────
+  useEffect(() => {
+    if (!events.length) return;
+    const ids = events.map((e) => e.id);
+    const supabase = createClient();
+    const channel = supabase
+      .channel('eventi-registrations-rt')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'event_registrations' },
+        () => {
+          getRegistrationCountsBatch(ids).then(setRegistrationCounts);
+          if (user) getUserRegisteredEventIds(user.id, ids).then((set) => setRegisteredIds(set));
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, events]);
-
-  async function loadCounts(evts: EventRow[]) {
-    const counts: Record<string, number> = {};
-    await Promise.all(evts.map(async (e) => { counts[e.id] = await getRegistrationCount(e.id); }));
-    setRegistrationCounts(counts);
-  }
-
-  async function loadUserRegistrations(evts: EventRow[]) {
-    if (!user) return;
-    const results = await Promise.all(evts.map((e) => checkIsRegistered(e.id, user.id)));
-    setRegisteredIds(new Set(evts.filter((_, i) => results[i]).map((e) => e.id)));
-  }
+  }, [events, user?.id]);
 
   // ── Filter helpers ──────────────────────────────────────────────────────────
   function applyDateFilter(evts: EventRow[], chip: IntentKey | null): EventRow[] {

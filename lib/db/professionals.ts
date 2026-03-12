@@ -29,22 +29,38 @@ export async function searchProfessionals(params: {
   return (data ?? []) as ProfessionalRow[];
 }
 
-export async function getMembersByZoneManager(managerId: string): Promise<ProfessionalRow[]> {
+export interface ProfessionalWithUserId extends ProfessionalRow {
+  /** UUID from user_profiles — use this for alert/award/log operations */
+  user_profile_id: string;
+}
+
+export async function getMembersByZoneManager(managerId: string): Promise<ProfessionalWithUserId[]> {
   const supabase = createClient();
-  // Get professional_ids linked to members of this zone manager
+  // Fetch user_profiles that belong to this zone manager, including both
+  // the user UUID (id) and the linked professional text-id (professional_id)
   const { data: profiles } = await supabase
     .from('user_profiles')
-    .select('professional_id')
+    .select('id, professional_id')
     .eq('zone_manager_id', managerId)
     .not('professional_id', 'is', null);
   if (!profiles?.length) return [];
-  const professionalIds = (profiles as { professional_id: string }[]).map((p) => p.professional_id);
+
+  // Map: professionals.id (TEXT) → user_profiles.id (UUID)
+  const profileMap = new Map(
+    (profiles as { id: string; professional_id: string }[]).map((p) => [p.professional_id, p.id])
+  );
+  const professionalIds = Array.from(profileMap.keys());
+
   const { data } = await supabase
     .from('professionals')
     .select('*')
     .in('id', professionalIds)
     .order('name');
-  return (data ?? []) as ProfessionalRow[];
+
+  return ((data ?? []) as ProfessionalRow[]).map((p) => ({
+    ...p,
+    user_profile_id: profileMap.get(p.id) ?? p.id,
+  }));
 }
 
 export async function getTopProfessionals(limit = 6): Promise<ProfessionalRow[]> {

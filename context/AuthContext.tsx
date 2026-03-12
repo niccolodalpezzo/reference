@@ -45,7 +45,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select('*')
       .eq('id', userId)
       .single();
-    if (error) console.error('[AuthContext] loadUserProfile:', error.message);
+
+    if (error) {
+      // PGRST116 = "Row not found" — profile not yet created (mid-registration flow)
+      if (error.code === 'PGRST116') {
+        setUser(null);
+        return;
+      }
+      // Any other error (network, timeout, RLS) — do NOT clear user state.
+      // Fail silently and keep whatever state we had before.
+      console.error('[AuthContext] loadUserProfile:', error.message);
+      return;
+    }
+
     if (data) setUser({ ...(data as Omit<AppUser, 'email'>), email, id: userId });
     else setUser(null);
   }
@@ -69,9 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (err) {
           console.error('[AuthContext] onAuthStateChange error:', err);
-          setUser(null);
-          // Attempt to clear any corrupted Supabase session from storage
-          try { await supabase.auth.signOut(); } catch { /* ignore */ }
+          // Do NOT signOut or clear user on DB/network errors — only on actual
+          // auth failures. Supabase handles invalid JWT internally.
         } finally {
           setIsLoading(false);
         }

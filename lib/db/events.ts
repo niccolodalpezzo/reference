@@ -163,3 +163,36 @@ export async function getEventRegistrationsWithProfiles(eventId: string): Promis
     .order('created_at', { ascending: true });
   return (data ?? []) as Array<RegistrationRow & { user_profiles: { name: string; city: string | null; province: string | null } }>;
 }
+
+/** Batch: returns a map of eventId → registration count. Single query. */
+export async function getRegistrationCountsBatch(
+  eventIds: string[]
+): Promise<Record<string, number>> {
+  if (!eventIds.length) return {};
+  const supabase = createClient();
+  const { data } = await supabase
+    .from('event_registrations')
+    .select('event_id')
+    .in('event_id', eventIds);
+  const counts: Record<string, number> = {};
+  for (const id of eventIds) counts[id] = 0;
+  for (const row of (data ?? []) as { event_id: string }[]) {
+    counts[row.event_id] = (counts[row.event_id] ?? 0) + 1;
+  }
+  return counts;
+}
+
+/** Batch: returns the set of event IDs the user is registered for. Single query. */
+export async function getUserRegisteredEventIds(
+  userId: string,
+  eventIds: string[]
+): Promise<Set<string>> {
+  if (!eventIds.length) return new Set();
+  const supabase = createClient();
+  const { data } = await supabase
+    .from('event_registrations')
+    .select('event_id')
+    .eq('professionista_id', userId)
+    .in('event_id', eventIds);
+  return new Set(((data ?? []) as { event_id: string }[]).map((r) => r.event_id));
+}
