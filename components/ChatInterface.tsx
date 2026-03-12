@@ -250,7 +250,7 @@ export default function ChatInterface({ chatId, initialQuery, onOpenProfessional
   const initialized = useRef(false);
   const localChatId = useRef<string | null>(chatId);
 
-  useEffect(() => { migrateLegacyChat(); }, []);
+  useEffect(() => { if (!isGuest) migrateLegacyChat(); }, [isGuest]);
 
   useEffect(() => {
     if (chatId) {
@@ -279,10 +279,11 @@ export default function ChatInterface({ chatId, initialQuery, onOpenProfessional
 
   const persistMessages = useCallback((msgs: ChatMessage[]) => {
     if (msgs.length === 0) return;
+    if (isGuest) return; // never persist guest sessions
     const id = upsertChat(localChatId.current, msgs);
     localChatId.current = id;
     onChatUpdated?.(id);
-  }, [onChatUpdated]);
+  }, [onChatUpdated, isGuest]);
 
   const clearChat = () => {
     setMessages([]);
@@ -306,9 +307,11 @@ export default function ChatInterface({ chatId, initialQuery, onOpenProfessional
     setInput('');
     setIsLoading(true);
 
-    const id = upsertChat(localChatId.current, newMessages);
-    localChatId.current = id;
-    onChatUpdated?.(id);
+    if (!isGuest) {
+      const id = upsertChat(localChatId.current, newMessages);
+      localChatId.current = id;
+      onChatUpdated?.(id);
+    }
 
     setMessages([...newMessages, { role: 'assistant', content: '' }]);
 

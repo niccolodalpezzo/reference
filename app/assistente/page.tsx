@@ -11,6 +11,7 @@ import {
   getActiveChatId,
   setActiveChatId,
   migrateLegacyChat,
+  clearGuestStorage,
 } from '@/lib/chatStorage';
 import { Sparkles, Loader2, PanelRightOpen, PanelRightClose, LogIn } from 'lucide-react';
 import Link from 'next/link';
@@ -18,7 +19,7 @@ import Link from 'next/link';
 function AssistenteContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || undefined;
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const isGuest = user === null;
 
   const [selectedPro, setSelectedPro] = useState<Professional | null>(null);
@@ -27,10 +28,19 @@ function AssistenteContent() {
   const [sidebarKey, setSidebarKey] = useState(0);
 
   useEffect(() => {
-    migrateLegacyChat();
-    const saved = getActiveChatId();
-    if (saved) setCurrentChatId(saved);
-  }, []);
+    if (authLoading) return; // wait for auth bootstrap
+    if (isGuest) {
+      // Guest: wipe any previously saved chat data so each visit starts clean
+      clearGuestStorage();
+      setCurrentChatId(null);
+    } else {
+      // Authenticated user: restore previous session and migrate legacy data
+      migrateLegacyChat();
+      const saved = getActiveChatId();
+      if (saved) setCurrentChatId(saved);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, isGuest]);
 
   const handleOpenProfessional = useCallback((pro: Professional) => {
     if (!isGuest) setSelectedPro(pro);

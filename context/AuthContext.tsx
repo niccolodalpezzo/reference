@@ -51,19 +51,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    // Timeout fallback: se onAuthStateChange non emette INITIAL_SESSION entro 5s
-    // (es. Supabase irraggiungibile), sblocchiamo il loading per mostrare la pagina.
-    const timeout = setTimeout(() => setIsLoading(false), 5000);
+    // Fallback: if Supabase never emits INITIAL_SESSION (unreachable, stale token, etc.)
+    // unblock loading after 3s so the login page is always reachable.
+    const timeout = setTimeout(() => {
+      setUser(null);
+      setIsLoading(false);
+    }, 3000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         clearTimeout(timeout);
-        if (session?.user) {
-          await loadUserProfile(session.user.id, session.user.email ?? '');
-        } else {
+        try {
+          if (session?.user) {
+            await loadUserProfile(session.user.id, session.user.email ?? '');
+          } else {
+            setUser(null);
+          }
+        } catch (err) {
+          console.error('[AuthContext] onAuthStateChange error:', err);
           setUser(null);
+          // Attempt to clear any corrupted Supabase session from storage
+          try { await supabase.auth.signOut(); } catch { /* ignore */ }
+        } finally {
+          setIsLoading(false);
         }
-        setIsLoading(false);
       }
     );
 
