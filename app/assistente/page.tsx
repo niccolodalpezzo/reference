@@ -13,8 +13,7 @@ import {
   migrateLegacyChat,
   clearGuestStorage,
 } from '@/lib/chatStorage';
-import { Sparkles, Loader2, PanelRightOpen, PanelRightClose, LogIn } from 'lucide-react';
-import Link from 'next/link';
+import { Sparkles, Loader2 } from 'lucide-react';
 
 function AssistenteContent() {
   const searchParams = useSearchParams();
@@ -23,24 +22,32 @@ function AssistenteContent() {
   const isGuest = user === null;
 
   const [selectedPro, setSelectedPro] = useState<Professional | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [sidebarKey, setSidebarKey] = useState(0);
+  // hasStarted: false = State 1 (hero), true = State 2 (workspace + sidebar)
+  const [hasStarted, setHasStarted] = useState(false);
 
   useEffect(() => {
-    if (authLoading) return; // wait for auth bootstrap
+    if (authLoading) return;
     if (isGuest) {
-      // Guest: wipe any previously saved chat data so each visit starts clean
       clearGuestStorage();
       setCurrentChatId(null);
+      setHasStarted(false);
     } else {
-      // Authenticated user: restore previous session and migrate legacy data
       migrateLegacyChat();
       const saved = getActiveChatId();
-      if (saved) setCurrentChatId(saved);
+      if (saved) {
+        setCurrentChatId(saved);
+        setHasStarted(true); // existing chat → go directly to workspace
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isGuest]);
+
+  // If there's an initialQuery, go straight to workspace state
+  useEffect(() => {
+    if (initialQuery) setHasStarted(true);
+  }, [initialQuery]);
 
   const handleOpenProfessional = useCallback((pro: Professional) => {
     if (!isGuest) setSelectedPro(pro);
@@ -49,11 +56,13 @@ function AssistenteContent() {
   const handleLoadChat = useCallback((chatId: string) => {
     setCurrentChatId(chatId);
     setActiveChatId(chatId);
+    setHasStarted(true);
   }, []);
 
   const handleNewChat = useCallback(() => {
     setCurrentChatId(null);
     setActiveChatId(null);
+    setHasStarted(false);
   }, []);
 
   const handleChatUpdated = useCallback((chatId: string) => {
@@ -64,8 +73,12 @@ function AssistenteContent() {
     setSidebarKey((k) => k + 1);
   }, []);
 
+  const handleFirstMessage = useCallback(() => {
+    setHasStarted(true);
+  }, []);
+
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-white">
+    <div className="h-[calc(100vh-64px)] flex overflow-hidden bg-ndp-bg">
       {selectedPro && !isGuest && (
         <ProfessionalDrawer
           professional={selectedPro}
@@ -74,54 +87,20 @@ function AssistenteContent() {
       )}
 
       {/* Main chat area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Trust / status banner */}
-        <div className={`px-5 py-2.5 flex items-center justify-between shrink-0 ${isGuest ? 'bg-ndp-blue/90' : 'bg-ndp-blue/95'}`}>
-          {isGuest ? (
-            <p className="text-[11px] text-white/80 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-amber-300 rounded-full" />
-              Anteprima gratuita — registrati per sbloccare tutte le funzioni premium
-            </p>
-          ) : (
-            <p className="text-[11px] text-white/70 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-              Professionisti verificati nella rete NDP — ogni risposta è basata su profili reali
-            </p>
-          )}
-          <div className="flex items-center gap-2">
-            {isGuest && (
-              <Link
-                href="/login"
-                className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold text-white bg-white/15 border border-white/20 px-3 py-1.5 rounded-lg hover:bg-white/25 transition-colors"
-              >
-                <LogIn size={11} />Accedi
-              </Link>
-            )}
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors md:flex hidden"
-              title={sidebarOpen ? 'Chiudi sidebar' : 'Apri sidebar'}
-            >
-              {sidebarOpen ? <PanelRightClose size={15} /> : <PanelRightOpen size={15} />}
-            </button>
-          </div>
-        </div>
-
-        {/* Chat */}
-        <div className="flex-1 min-h-0">
-          <ChatInterface
-            key={currentChatId ?? '__new__'}
-            chatId={currentChatId}
-            initialQuery={initialQuery}
-            onOpenProfessional={handleOpenProfessional}
-            onChatUpdated={handleChatUpdated}
-          />
-        </div>
+      <div className="flex-1 min-w-0 flex flex-col min-h-0">
+        <ChatInterface
+          key={currentChatId ?? '__new__'}
+          chatId={currentChatId}
+          initialQuery={initialQuery}
+          onOpenProfessional={handleOpenProfessional}
+          onChatUpdated={handleChatUpdated}
+          onFirstMessage={handleFirstMessage}
+        />
       </div>
 
-      {/* Sidebar — desktop only */}
-      {sidebarOpen && (
-        <div className="hidden md:flex w-80 shrink-0">
+      {/* Sidebar — appears in State 2 only, desktop only */}
+      {hasStarted && (
+        <div className="hidden md:flex w-96 shrink-0 animate-slide-in">
           <ChatSidebar
             key={sidebarKey}
             currentChatId={currentChatId}
@@ -139,7 +118,7 @@ export default function AssistentePage() {
   return (
     <Suspense
       fallback={
-        <div className="h-[calc(100vh-64px)] flex items-center justify-center bg-white">
+        <div className="h-[calc(100vh-64px)] flex items-center justify-center bg-ndp-bg">
           <div className="text-center">
             <div className="w-14 h-14 bg-ndp-blue rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-[0_8px_32px_rgba(34,0,204,0.25)]">
               <Sparkles size={22} className="text-white animate-pulse" />
