@@ -67,7 +67,21 @@ export default function RegistrazionePage() {
         zone,
       });
 
-      // 3. Log registration
+      // 3. Auto-assign zone manager for this capoluogo
+      const { data: zmProfile } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('role', 'zone_manager')
+        .eq('capoluogo', capoluogo)
+        .maybeSingle();
+      if (zmProfile?.id) {
+        await supabase
+          .from('user_profiles')
+          .update({ zone_manager_id: zmProfile.id })
+          .eq('id', userId);
+      }
+
+      // 4. Log registration
       await appendLog({
         user_id: userId,
         user_display_name: fullName,

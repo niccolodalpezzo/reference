@@ -5,6 +5,7 @@ import AuthGuard from '@/components/AuthGuard';
 import { useAuth } from '@/context/AuthContext';
 import { getWizardProfile } from '@/lib/db/wizard';
 import { getConversations, Conversation } from '@/lib/db/conversations';
+import { createClient } from '@/lib/supabase/client';
 import { computeProfileCompletion } from '@/lib/scoring';
 import { WizardProfile } from '@/lib/types';
 import Link from 'next/link';
@@ -38,6 +39,21 @@ function DashboardContent() {
     }
 
     load();
+  }, [user]);
+
+  // Realtime: aggiorna conversazioni quando arrivano nuovi messaggi
+  useEffect(() => {
+    if (!user) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel('dashboard-conversations-rt')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'conversations', filter: `initiator_id=eq.${user.id}` },
+        () => { getConversations(user.id).then(setConversations); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const recentConvs = conversations.slice(0, 4);

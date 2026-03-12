@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import AuthGuard from '@/components/AuthGuard';
-import { getMembersByZoneManager, ProfessionalRow } from '@/lib/db/professionals';
+import { getMembersByZoneManager, ProfessionalWithUserId } from '@/lib/db/professionals';
 import Link from 'next/link';
 import {
   Users, CheckCircle2, AlertTriangle, TrendingUp,
@@ -42,7 +42,7 @@ function SeverityIcon({ severity, size = 14 }: { severity: AlertSeverity; size?:
 function CreateAlertModal({
   members, onClose, onCreated,
 }: {
-  members: ProfessionalRow[];
+  members: ProfessionalWithUserId[];
   onClose: () => void;
   onCreated: () => void;
 }) {
@@ -50,7 +50,10 @@ function CreateAlertModal({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [severity, setSeverity] = useState<AlertSeverity>('warning');
+  // memberId stores the professionals.id (TEXT) used as select value;
+  // memberUserId stores the user_profiles.id (UUID) used for alert member_id
   const [memberId, setMemberId] = useState('');
+  const [memberUserId, setMemberUserId] = useState('');
   const [memberName, setMemberName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -59,8 +62,9 @@ function CreateAlertModal({
     if (!user) return;
     setIsSaving(true);
     const member = members.find((p) => p.id === memberId);
+    // Use user_profile_id (UUID) for member_id to keep IDs consistent
     await createAlert({
-      member_id: memberId || user.id,
+      member_id: memberUserId || user.id,
       member_name: member?.name ?? memberName,
       created_by_user_id: user.id,
       title,
@@ -110,7 +114,7 @@ function CreateAlertModal({
           </div>
           <div>
             <label className="text-xs font-semibold text-ndp-muted uppercase tracking-wide mb-1.5 block">Assegna a membro (opzionale)</label>
-            <select value={memberId} onChange={(e) => { setMemberId(e.target.value); const m = members.find((p) => p.id === e.target.value); setMemberName(m?.name ?? ''); }}
+            <select value={memberId} onChange={(e) => { setMemberId(e.target.value); const m = members.find((p) => p.id === e.target.value); setMemberName(m?.name ?? ''); setMemberUserId(m?.user_profile_id ?? ''); }}
               className="w-full px-3 py-2.5 border border-ndp-border rounded-xl text-sm focus:outline-none focus:border-ndp-blue/50 bg-white">
               <option value="">— Nessun membro specifico —</option>
               {members.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.profession})</option>)}
@@ -190,7 +194,7 @@ function RejectModal({ reference, onClose, onRejected }: {
 
 // ─── Tab: Panoramica ──────────────────────────────────────────────────────────
 
-function PanoramicaTab({ members }: { members: ProfessionalRow[] }) {
+function PanoramicaTab({ members }: { members: ProfessionalWithUserId[] }) {
   const totalMembers = members.length;
   const openRequests = members.reduce((s, p) => s + (p.open_requests ?? 0), 0);
   const topOfMonth = members.filter((p) => p.is_top_of_month).length;
@@ -244,7 +248,7 @@ function PanoramicaTab({ members }: { members: ProfessionalRow[] }) {
 
 // ─── Tab: Membri ──────────────────────────────────────────────────────────────
 
-function MembriTab({ members }: { members: ProfessionalRow[] }) {
+function MembriTab({ members }: { members: ProfessionalWithUserId[] }) {
   const [query, setQuery] = useState('');
   const filtered = members.filter((p) => {
     const q = query.toLowerCase();
@@ -298,7 +302,7 @@ function MembriTab({ members }: { members: ProfessionalRow[] }) {
 
 // ─── Tab: Alert ───────────────────────────────────────────────────────────────
 
-function AlertTab({ members }: { members: ProfessionalRow[] }) {
+function AlertTab({ members }: { members: ProfessionalWithUserId[] }) {
   const { user } = useAuth();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [showCreate, setShowCreate] = useState(false);
@@ -542,7 +546,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
 function ZonaDashboardContent() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('panoramica');
-  const [members, setMembers] = useState<ProfessionalRow[]>([]);
+  const [members, setMembers] = useState<ProfessionalWithUserId[]>([]);
 
   useEffect(() => {
     if (user?.id) getMembersByZoneManager(user.id).then(setMembers);

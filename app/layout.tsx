@@ -3,7 +3,6 @@ import './globals.css';
 import Navbar from '@/components/Navbar';
 import ClientFooter from '@/components/ClientFooter';
 import { AuthProvider } from '@/context/AuthContext';
-import SeedProvider from '@/components/SeedProvider';
 
 export const metadata: Metadata = {
   title: 'NDP Reference — Il Network di Fiducia per Professionisti Verificati',
@@ -17,11 +16,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="it">
       <body>
         <AuthProvider>
-          <SeedProvider>
-            <Navbar />
-            <main className="min-h-screen">{children}</main>
-            <ClientFooter />
-          </SeedProvider>
+          <Navbar />
+          <main className="min-h-screen">{children}</main>
+          <ClientFooter />
         </AuthProvider>
       </body>
     </html>

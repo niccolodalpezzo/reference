@@ -7,7 +7,7 @@ import { Menu, X, Sparkles, User, LogOut, ChevronDown, MapPin, MessageSquare, Us
 import Image from 'next/image';
 import clsx from 'clsx';
 import { useAuth } from '@/context/AuthContext';
-import { getTotalUnread } from '@/lib/storage/conversations';
+import { getTotalUnread } from '@/lib/db/conversations';
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -19,7 +19,7 @@ export default function Navbar() {
 
   useEffect(() => {
     if (user?.role === 'member') {
-      setUnreadCount(getTotalUnread(user.id));
+      getTotalUnread(user.id).then(setUnreadCount);
     } else {
       setUnreadCount(0);
     }

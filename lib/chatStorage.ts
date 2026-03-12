@@ -156,20 +156,17 @@ export function renameChat(chatId: string, newTitle: string) {
 // ── Guest cleanup ──────────────────────────────────────────
 
 /**
- * Remove all chat data from localStorage (called when user is not authenticated).
- * Ensures guest sessions never persist across visits.
+ * Remove ALL ndp-* data from localStorage (called when user is not authenticated).
+ * Ensures guest sessions never see demo data or previous sessions' data.
+ * Covers: chat keys, seed flag, legacy storage keys (conversations, messages,
+ * references, alerts, logs, users seeded by the old SeedProvider).
  */
 export function clearGuestStorage() {
   if (typeof window === 'undefined') return;
   try {
     const keys = Object.keys(localStorage);
     for (const key of keys) {
-      if (
-        key === CHATS_INDEX_KEY ||
-        key === ACTIVE_CHAT_KEY ||
-        key.startsWith(CHAT_MESSAGES_PREFIX) ||
-        key === 'ndp-chat-v1' // legacy
-      ) {
+      if (key.startsWith('ndp-')) {
         localStorage.removeItem(key);
       }
     }
