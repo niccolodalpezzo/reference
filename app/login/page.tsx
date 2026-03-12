@@ -18,6 +18,13 @@ function LoginForm() {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // If auth bootstrap takes too long, force-render the form after 2s
+  const [forceShow, setForceShow] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setForceShow(true), 2000);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -35,7 +42,17 @@ function LoginForm() {
     setSubmitting(false);
   };
 
-  if (isLoading) {
+  // Show loader only while auth is bootstrapping AND we haven't hit the timeout
+  if (isLoading && !forceShow) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-ndp-bg">
+        <Loader2 size={32} className="text-ndp-blue animate-spin" />
+      </div>
+    );
+  }
+
+  // If auth resolved and user is logged in, wait for redirect (avoid form flash)
+  if (!isLoading && user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-ndp-bg">
         <Loader2 size={32} className="text-ndp-blue animate-spin" />

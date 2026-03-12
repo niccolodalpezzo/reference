@@ -153,6 +153,31 @@ export function renameChat(chatId: string, newTitle: string) {
   persistIndex(chats);
 }
 
+// ── Guest cleanup ──────────────────────────────────────────
+
+/**
+ * Remove all chat data from localStorage (called when user is not authenticated).
+ * Ensures guest sessions never persist across visits.
+ */
+export function clearGuestStorage() {
+  if (typeof window === 'undefined') return;
+  try {
+    const keys = Object.keys(localStorage);
+    for (const key of keys) {
+      if (
+        key === CHATS_INDEX_KEY ||
+        key === ACTIVE_CHAT_KEY ||
+        key.startsWith(CHAT_MESSAGES_PREFIX) ||
+        key === 'ndp-chat-v1' // legacy
+      ) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch {
+    // ignore
+  }
+}
+
 // ── Migration: import legacy single-chat data ──────────────
 
 export function migrateLegacyChat() {
