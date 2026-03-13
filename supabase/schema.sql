@@ -243,7 +243,30 @@ create policy "Assegnazione premi zona" on public.awards
   );
 
 -- ────────────────────────────────────────────────────────────
--- 10. REALTIME
+-- 10. CONTATTI PRIVATI DEL PROFESSIONISTA
+-- ────────────────────────────────────────────────────────────
+create table if not exists public.private_contacts (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.user_profiles(id) on delete cascade not null,
+  nome text not null,
+  cognome text not null default '',
+  professione text not null default '',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+alter table public.private_contacts enable row level security;
+
+create unique index idx_private_contacts_unique
+  on public.private_contacts (user_id, lower(nome), lower(cognome), lower(professione));
+create index idx_private_contacts_user on public.private_contacts(user_id);
+create index idx_private_contacts_professione
+  on public.private_contacts using gin(to_tsvector('italian', professione));
+
+create policy "Contatti privati solo owner" on public.private_contacts
+  for all using (auth.uid() = user_id);
+
+-- ────────────────────────────────────────────────────────────
+-- 11. REALTIME
 -- ────────────────────────────────────────────────────────────
 alter publication supabase_realtime add table public.messages;
 alter publication supabase_realtime add table public.conversations;
