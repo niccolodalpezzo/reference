@@ -16,7 +16,7 @@ import {
   type EventInsert,
 } from '@/lib/db/events';
 import { createClient } from '@/lib/supabase/client';
-import { appendLog } from '@/lib/db/logs';
+import { appendLogAsync } from '@/lib/db/logs';
 import {
   Calendar, Users, TrendingUp, Plus, X, Loader2, ArrowLeft, AlertCircle,
 } from 'lucide-react';
@@ -304,17 +304,17 @@ function EventiManagerContent() {
 
   const load = useCallback(async () => {
     if (!user) return;
-    const [evts, st] = await Promise.all([
-      getEventsByManager(user.id),
-      getEventStats(user.id),
+    // Fetch events first, then stats + counts in parallel (stats reuses events data)
+    const evts = await getEventsByManager(user.id);
+    const [st, counts] = await Promise.all([
+      getEventStats(user.id, evts),
+      evts.length > 0
+        ? getRegistrationCountsBatch(evts.map((e) => e.id))
+        : Promise.resolve({} as Record<string, number>),
     ]);
     setEvents(evts);
     setStats(st);
-    // Load registration counts per event
-    if (evts.length > 0) {
-      const counts = await getRegistrationCountsBatch(evts.map((e) => e.id));
-      setRegistrationCounts(counts);
-    }
+    setRegistrationCounts(counts);
     setLoading(false);
   }, [user]);
 
@@ -358,8 +358,9 @@ function EventiManagerContent() {
     try {
       const created = await createEvent(payload);
       if (created) {
-        await appendLog({ user_id: user.id, user_display_name: user.name, type: 'alert_created', description: `Evento creato: ${form.titolo}` });
-        await load();
+        setShowCreateModal(false); // close modal immediately
+        appendLogAsync({ user_id: user.id, user_display_name: user.name, type: 'alert_created', description: `Evento creato: ${form.titolo}` });
+        load(); // refresh in background — no await
       } else {
         setError('Errore nella creazione dell\'evento. Verifica i dati e riprova.');
       }
@@ -381,13 +382,14 @@ function EventiManagerContent() {
       orario_evento: form.orario_evento,
       status: form.status,
     });
-    await load();
+    setEditingEvent(null); // close modal immediately
+    load(); // refresh in background
   }
 
   async function handleDelete(event: EventRow) {
     if (!confirm(`Eliminare l'evento "${event.titolo}"?`)) return;
     await deleteEvent(event.id);
-    await load();
+    load(); // refresh in background
   }
 
   const kpi = [

@@ -48,3 +48,14 @@ export async function appendLog(payload: {
     metadata: (payload.metadata ?? {}) as Json,
   } as LogInsert);
 }
+
+/** Fire-and-forget version — never blocks the caller. */
+export function appendLogAsync(payload: {
+  user_id: string;
+  user_display_name?: string;
+  type: string;
+  description?: string;
+  metadata?: Record<string, unknown>;
+}): void {
+  appendLog(payload).catch((err) => console.error('appendLogAsync error:', err));
+}

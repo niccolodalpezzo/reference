@@ -80,12 +80,15 @@ export async function deleteEvent(id: string): Promise<void> {
 
 // ─── STATS ───────────────────────────────────────────────────────────────────
 
-export async function getEventStats(managerId: string): Promise<{
+export async function getEventStats(
+  managerId: string,
+  preloadedEvents?: EventRow[],
+): Promise<{
   total: number;
   upcoming: number;
   totalRegistrations: number;
 }> {
-  const events = await getEventsByManager(managerId);
+  const events = preloadedEvents ?? await getEventsByManager(managerId);
   const today = new Date().toISOString().split('T')[0];
   const upcoming = events.filter((e) => e.data_evento >= today && e.status === 'attivo').length;
   const eventIds = events.map((e) => e.id);

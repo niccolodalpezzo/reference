@@ -9,6 +9,13 @@ const SUPABASE_URL =
 const SUPABASE_ANON_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 
+// Singleton: reuse the same client instance across the entire browser session.
+// Avoids creating 64+ separate instances (and their WebSocket/HTTP connections).
+let _client: ReturnType<typeof createBrowserClient<Database>> | null = null;
+
 export function createClient() {
-  return createBrowserClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
+  if (!_client) {
+    _client = createBrowserClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+  return _client;
 }
