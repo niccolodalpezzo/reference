@@ -5,19 +5,26 @@ import AuthGuard from '@/components/AuthGuard';
 import { useAuth } from '@/context/AuthContext';
 import { getWizardProfile } from '@/lib/db/wizard';
 import { getConversations, Conversation } from '@/lib/db/conversations';
+import {
+  getActiveEvents,
+  getUserRegisteredEventIds,
+  unregisterFromEvent,
+  type EventRow,
+} from '@/lib/db/events';
 import { createClient } from '@/lib/supabase/client';
 import { computeProfileCompletion } from '@/lib/scoring';
 import { WizardProfile } from '@/lib/types';
 import Link from 'next/link';
 import ReteContatti from '@/components/ReteContatti';
 import {
-  MessageSquare, Clock, Edit3, ChevronRight, Search,
+  MessageSquare, Clock, Edit3, ChevronRight, Search, Calendar, MapPin, X,
 } from 'lucide-react';
 
 function DashboardContent() {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [profilePct, setProfilePct] = useState<number>(0);
+  const [myEvents, setMyEvents] = useState<EventRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -25,15 +32,26 @@ function DashboardContent() {
 
     async function load() {
       if (!user) return;
-      const [convs, wizardData] = await Promise.all([
+      const [convs, wizardData, allEvents] = await Promise.all([
         getConversations(user.id),
         getWizardProfile(user.id),
+        getActiveEvents(),
       ]);
       setConversations(convs);
       if (wizardData.profile) {
         setProfilePct(computeProfileCompletion(wizardData.profile as WizardProfile));
       } else {
         setProfilePct(wizardData.completionPct);
+      }
+      // Get user's registered events
+      if (allEvents.length > 0) {
+        const regIds = await getUserRegisteredEventIds(user.id, allEvents.map((e) => e.id));
+        const today = new Date().toISOString().split('T')[0];
+        setMyEvents(
+          allEvents
+            .filter((e) => regIds.has(e.id) && e.data_evento >= today)
+            .sort((a, b) => a.data_evento.localeCompare(b.data_evento))
+        );
       }
       setIsLoading(false);
     }
@@ -142,6 +160,52 @@ function DashboardContent() {
             <Search size={20} className="text-ndp-muted group-hover:text-ndp-blue transition-colors" />
           </Link>
         </div>
+
+        {/* My upcoming events */}
+        {myEvents.length > 0 && (
+          <div className="bg-white rounded-2xl border border-ndp-border shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-ndp-border flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar size={15} className="text-ndp-blue" />
+                <h2 className="font-semibold text-ndp-text">I tuoi prossimi eventi</h2>
+              </div>
+              <Link href="/eventi" className="text-xs text-ndp-blue font-medium hover:underline">
+                Tutti gli eventi
+              </Link>
+            </div>
+            <div className="divide-y divide-ndp-border">
+              {myEvents.slice(0, 4).map((event) => (
+                <div key={event.id} className="px-6 py-4 flex items-center gap-4">
+                  <div className="w-12 h-12 bg-ndp-blue/8 rounded-xl flex flex-col items-center justify-center shrink-0">
+                    <span className="text-[10px] font-bold text-ndp-blue uppercase">
+                      {new Date(event.data_evento + 'T00:00:00').toLocaleDateString('it-IT', { month: 'short' })}
+                    </span>
+                    <span className="text-sm font-bold text-ndp-text leading-none">
+                      {new Date(event.data_evento + 'T00:00:00').getDate()}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-ndp-text truncate">{event.titolo}</p>
+                    <p className="text-xs text-ndp-muted flex items-center gap-1">
+                      <MapPin size={10} /> {event.citta} · {event.orario_evento.slice(0, 5)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!user) return;
+                      await unregisterFromEvent(event.id, user.id);
+                      setMyEvents((prev) => prev.filter((e) => e.id !== event.id));
+                    }}
+                    className="text-xs text-ndp-muted hover:text-red-500 transition-colors shrink-0"
+                    title="Annulla iscrizione"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Recent conversations */}
         <div className="bg-white rounded-2xl border border-ndp-border shadow-sm overflow-hidden">

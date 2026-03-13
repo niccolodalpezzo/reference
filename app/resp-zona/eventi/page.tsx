@@ -11,12 +11,14 @@ import {
   deleteEvent,
   getEventStats,
   getEventRegistrationsWithProfiles,
+  getRegistrationCountsBatch,
   type EventRow,
   type EventInsert,
 } from '@/lib/db/events';
+import { createClient } from '@/lib/supabase/client';
 import { appendLog } from '@/lib/db/logs';
 import {
-  Calendar, Users, TrendingUp, Plus, X, Loader2, ArrowLeft, Eye
+  Calendar, Users, TrendingUp, Plus, X, Loader2, ArrowLeft, AlertCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -293,7 +295,9 @@ function EventiManagerContent() {
   const { user } = useAuth();
   const [events, setEvents] = useState<EventRow[]>([]);
   const [stats, setStats] = useState({ total: 0, upcoming: 0, totalRegistrations: 0 });
+  const [registrationCounts, setRegistrationCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<EventRow | null>(null);
   const [viewingRegistrations, setViewingRegistrations] = useState<EventRow | null>(null);
@@ -306,13 +310,40 @@ function EventiManagerContent() {
     ]);
     setEvents(evts);
     setStats(st);
+    // Load registration counts per event
+    if (evts.length > 0) {
+      const counts = await getRegistrationCountsBatch(evts.map((e) => e.id));
+      setRegistrationCounts(counts);
+    }
     setLoading(false);
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
 
+  // Realtime: refresh when events or registrations change
+  useEffect(() => {
+    if (!user) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel('manager-events-rt')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'events' },
+        () => { load(); }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'event_registrations' },
+        () => { load(); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
   async function handleCreate(form: EventFormData) {
     if (!user) return;
+    setError(null);
     const payload: EventInsert = {
       titolo: form.titolo,
       descrizione: form.descrizione || null,
@@ -324,10 +355,17 @@ function EventiManagerContent() {
       status: form.status,
       responsabile_id: user.id,
     };
-    const created = await createEvent(payload);
-    if (created) {
-      await appendLog({ user_id: user.id, user_display_name: user.name, type: 'alert_created', description: `Evento creato: ${form.titolo}` });
-      await load();
+    try {
+      const created = await createEvent(payload);
+      if (created) {
+        await appendLog({ user_id: user.id, user_display_name: user.name, type: 'alert_created', description: `Evento creato: ${form.titolo}` });
+        await load();
+      } else {
+        setError('Errore nella creazione dell\'evento. Verifica i dati e riprova.');
+      }
+    } catch (err) {
+      console.error('Create event error:', err);
+      setError('Errore nella creazione dell\'evento. Riprova.');
     }
   }
 
@@ -382,6 +420,17 @@ function EventiManagerContent() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Error banner */}
+        {error && (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm font-medium px-5 py-3 rounded-2xl animate-fade-in">
+            <AlertCircle size={16} />
+            {error}
+            <button onClick={() => setError(null)} className="ml-auto p-1 hover:bg-red-100 rounded-lg">
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
           {kpi.map(({ label, value, icon: Icon, color, bg }) => (
@@ -421,7 +470,7 @@ function EventiManagerContent() {
                 key={event.id}
                 event={event}
                 variant="manager"
-                registrationCount={0}
+                registrationCount={registrationCounts[event.id] ?? 0}
                 onViewRegistrations={() => setViewingRegistrations(event)}
                 onEdit={() => setEditingEvent(event)}
                 onDelete={() => handleDelete(event)}
