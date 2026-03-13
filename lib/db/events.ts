@@ -50,11 +50,15 @@ export async function getEventsByManager(managerId: string): Promise<EventRow[]>
 
 export async function createEvent(payload: EventInsert): Promise<EventRow | null> {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('events')
     .insert(payload as Database['public']['Tables']['events']['Insert'])
     .select()
     .single();
+  if (error) {
+    console.error('createEvent error:', error.message, error.code, error.details);
+    return null;
+  }
   return data as EventRow | null;
 }
 
