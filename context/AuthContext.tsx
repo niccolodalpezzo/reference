@@ -98,7 +98,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: 'Credenziali non valide.' };
+    if (error) {
+      if (error.message.includes('Email not confirmed')) {
+        return { error: 'Email non ancora confermata. Controlla la tua casella di posta (anche lo spam).' };
+      }
+      if (error.message.includes('Invalid login credentials')) {
+        return { error: 'Email o password non corretti.' };
+      }
+      return { error: error.message };
+    }
     return { error: null };
   }
 

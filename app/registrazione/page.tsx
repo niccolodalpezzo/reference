@@ -13,7 +13,7 @@ export default function RegistrazionePage() {
 
   const [form, setForm] = useState({
     nome: '', cognome: '', email: '', password: '', confermaPassword: '',
-    professione: '', provincia: '',
+    professione: '', citta: '', provincia: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPw, setShowPw] = useState(false);
@@ -28,6 +28,7 @@ export default function RegistrazionePage() {
     if (form.password.length < 6) e.password = 'Minimo 6 caratteri';
     if (form.password !== form.confermaPassword) e.confermaPassword = 'Le password non coincidono';
     if (!form.professione.trim()) e.professione = 'Professione richiesta';
+    if (!form.citta.trim()) e.citta = 'Città richiesta';
     if (!form.provincia) e.provincia = 'Seleziona una provincia';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -39,59 +40,54 @@ export default function RegistrazionePage() {
     setIsSubmitting(true);
 
     try {
-      const supabase = createClient();
       const fullName = `${form.nome.trim()} ${form.cognome.trim()}`;
       const { regione, capoluogo } = getTerritoryForProvincia(form.provincia);
-      const zone = regione;
 
-      // 1. Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: form.email.trim().toLowerCase(),
-        password: form.password,
-        options: { data: { name: fullName } },
+      // 1. Create account via server API (auto-confirms email)
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: form.email.trim().toLowerCase(),
+          password: form.password,
+          name: fullName,
+          city: form.citta.trim(),
+          province: form.provincia,
+          region: regione,
+          capoluogo,
+          zone: regione,
+        }),
       });
-      if (authError) { setErrors({ submit: authError.message }); return; }
-
-      const userId = authData.user?.id;
-      if (!userId) { setErrors({ submit: 'Errore durante la registrazione.' }); return; }
-
-      // 2. Create user_profile
-      await supabase.from('user_profiles').insert({
-        id: userId,
-        name: fullName,
-        role: 'member',
-        province: form.provincia,
-        city: form.provincia,
-        region: regione,
-        capoluogo,
-        zone,
-      });
-
-      // 3. Auto-assign zone manager for this capoluogo
-      const { data: zmProfile } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('role', 'zone_manager')
-        .eq('capoluogo', capoluogo)
-        .maybeSingle();
-      if (zmProfile?.id) {
-        await supabase
-          .from('user_profiles')
-          .update({ zone_manager_id: zmProfile.id })
-          .eq('id', userId);
+      const result = await res.json();
+      if (!res.ok) {
+        setErrors({ submit: result.error || 'Errore durante la registrazione.' });
+        return;
       }
 
-      // 4. Log registration
-      await appendLog({
-        user_id: userId,
+      // 2. Auto-login with the newly created account
+      const supabase = createClient();
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+      });
+      if (loginError) {
+        // Account created but auto-login failed — redirect to login page
+        setSuccess(true);
+        setTimeout(() => router.push('/login'), 2200);
+        return;
+      }
+
+      // 3. Log registration (fire-and-forget)
+      appendLog({
+        user_id: result.userId,
         user_display_name: fullName,
         type: 'user_registered',
-        description: `Account creato — ${form.professione}, ${form.provincia}`,
-      });
+        description: `Account creato — ${form.professione}, ${form.citta} (${form.provincia})`,
+      }).catch(() => {});
 
       setSuccess(true);
       setTimeout(() => router.push('/professionisti/wizard'), 2200);
-    } catch (err) {
+    } catch {
       setErrors({ submit: 'Errore durante la registrazione. Riprova.' });
     } finally {
       setIsSubmitting(false);
@@ -113,9 +109,9 @@ export default function RegistrazionePage() {
           <h2 className="text-2xl font-bold text-ndp-text mb-2">Benvenuto nella rete!</h2>
           <p className="text-ndp-muted mb-4">Account creato con successo.</p>
           <div className="bg-ndp-bg rounded-2xl p-4 mb-6">
-            <p className="text-sm text-ndp-muted mb-1">Regione assegnata</p>
-            <p className="font-semibold text-ndp-blue text-lg">{getTerritoryForProvincia(form.provincia).regione}</p>
-            <p className="text-xs text-ndp-muted mt-1">Provincia: {form.provincia}</p>
+            <p className="text-sm text-ndp-muted mb-1">Il tuo territorio</p>
+            <p className="font-semibold text-ndp-blue text-lg">{form.citta}</p>
+            <p className="text-xs text-ndp-muted mt-1">Provincia: {form.provincia} · Regione: {getTerritoryForProvincia(form.provincia).regione}</p>
           </div>
           <p className="text-sm text-ndp-muted animate-pulse">Reindirizzamento al profilo...</p>
         </div>
@@ -221,15 +217,25 @@ export default function RegistrazionePage() {
               {showPw ? 'Nascondi' : 'Mostra'} password
             </button>
 
+            <div>
+              <label className="block text-xs font-semibold text-ndp-text mb-1.5">Professione</label>
+              <div className="relative">
+                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ndp-muted" />
+                <input type="text" value={form.professione} onChange={e => field('professione', e.target.value)} placeholder="es. Avvocato"
+                  className={`w-full pl-9 pr-3 py-2.5 rounded-xl border text-sm ${errors.professione ? 'border-red-400' : 'border-ndp-border focus:border-ndp-blue'} focus:outline-none`} />
+              </div>
+              {errors.professione && <p className="text-red-500 text-xs mt-1">{errors.professione}</p>}
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-ndp-text mb-1.5">Professione</label>
+                <label className="block text-xs font-semibold text-ndp-text mb-1.5">Città</label>
                 <div className="relative">
-                  <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ndp-muted" />
-                  <input type="text" value={form.professione} onChange={e => field('professione', e.target.value)} placeholder="es. Avvocato"
-                    className={`w-full pl-9 pr-3 py-2.5 rounded-xl border text-sm ${errors.professione ? 'border-red-400' : 'border-ndp-border focus:border-ndp-blue'} focus:outline-none`} />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ndp-muted" />
+                  <input type="text" value={form.citta} onChange={e => field('citta', e.target.value)} placeholder="es. Verona, Jesolo..."
+                    className={`w-full pl-9 pr-3 py-2.5 rounded-xl border text-sm ${errors.citta ? 'border-red-400' : 'border-ndp-border focus:border-ndp-blue'} focus:outline-none`} />
                 </div>
-                {errors.professione && <p className="text-red-500 text-xs mt-1">{errors.professione}</p>}
+                {errors.citta && <p className="text-red-500 text-xs mt-1">{errors.citta}</p>}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-ndp-text mb-1.5">Provincia</label>
