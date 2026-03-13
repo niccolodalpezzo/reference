@@ -30,14 +30,8 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith('/resp-zona')) {
     if (!user) return NextResponse.redirect(new URL('/login?from=zone_manager', request.url));
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-    if (profile?.role !== 'zone_manager') {
-      return NextResponse.redirect(new URL('/professionisti/dashboard', request.url));
-    }
+    // Role check delegated to client-side AuthGuard to avoid
+    // fragile RLS queries in middleware that can cause redirect loops
   }
 
   return supabaseResponse;

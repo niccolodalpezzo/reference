@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
 
-  async function loadUserProfile(userId: string, email: string) {
+  async function loadUserProfile(userId: string, email: string, retries = 2): Promise<void> {
     const { data, error } = await supabase
       .from('user_profiles')
       .select('*')
@@ -52,9 +52,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         return;
       }
-      // Any other error (network, timeout, RLS) — do NOT clear user state.
-      // Fail silently and keep whatever state we had before.
-      console.error('[AuthContext] loadUserProfile:', error.message);
+      // Retry on transient errors (network, timeout, RLS timing)
+      if (retries > 0) {
+        console.warn(`[AuthContext] loadUserProfile retry (${retries} left):`, error.message);
+        await new Promise((r) => setTimeout(r, 500));
+        return loadUserProfile(userId, email, retries - 1);
+      }
+      console.error('[AuthContext] loadUserProfile failed after retries:', error.message);
+      setUser(null);
       return;
     }
 

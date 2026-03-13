@@ -20,6 +20,8 @@ function LoginForm() {
   const [submitting, setSubmitting] = useState(false);
   // If auth bootstrap takes too long, force-render the form after 2s
   const [forceShow, setForceShow] = useState(false);
+  // Safety: if redirect doesn't complete within 5s, show form again
+  const [redirectStuck, setRedirectStuck] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setForceShow(true), 2000);
@@ -30,6 +32,9 @@ function LoginForm() {
     if (!isLoading && user) {
       if (user.role === 'zone_manager') router.replace('/resp-zona');
       else router.replace('/professionisti/dashboard');
+      // Safety timeout: if we're still on this page after 5s, something went wrong
+      const t = setTimeout(() => setRedirectStuck(true), 5000);
+      return () => clearTimeout(t);
     }
   }, [user, isLoading, router]);
 
@@ -52,7 +57,8 @@ function LoginForm() {
   }
 
   // If auth resolved and user is logged in, wait for redirect (avoid form flash)
-  if (!isLoading && user) {
+  // Unless redirect is stuck (>5s), then fall through to show the form
+  if (!isLoading && user && !redirectStuck) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-ndp-bg">
         <Loader2 size={32} className="text-ndp-blue animate-spin" />
