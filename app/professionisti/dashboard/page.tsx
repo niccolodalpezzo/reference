@@ -198,7 +198,7 @@ function DashboardContent() {
         </div>
 
         {/* Rete Contatti */}
-        <ReteContatti />
+        <ReteContatti userId={user!.id} />
 
       </div>
     </div>

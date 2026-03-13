@@ -1,20 +1,17 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Users, Plus, Trash2, X, ChevronRight, TrendingUp, Zap } from 'lucide-react';
+import { Users, Plus, Trash2, X, ChevronRight, TrendingUp, Zap, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
+import {
+  getContacts,
+  addContact as dbAddContact,
+  deleteContact as dbDeleteContact,
+  migrateFromLocalStorage,
+  type ContactRow,
+} from '@/lib/db/contacts';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface Contact {
-  id: string;
-  nome: string;
-  cognome: string;
-  telefono: string;
-  professione: string;
-  aggiuntoAt: string;
-}
-
-const CONTACTS_KEY = 'ndp-rete-contatti-v1';
+const LEGACY_KEY = 'ndp-rete-contatti-v1';
 
 // ─── Level system ─────────────────────────────────────────────────────────────
 const LEVELS = [
@@ -95,7 +92,7 @@ function ProgressRing({ pct, count }: { pct: number; count: number }) {
 }
 
 // ─── Contact card ─────────────────────────────────────────────────────────────
-function ContactCard({ contact, onDelete, isNew }: { contact: Contact; onDelete: (id: string) => void; isNew: boolean }) {
+function ContactCard({ contact, onDelete, isNew }: { contact: ContactRow; onDelete: (id: string) => void; isNew: boolean }) {
   function initials(nome: string, cognome: string) {
     return `${nome[0] ?? ''}${cognome[0] ?? ''}`.toUpperCase();
   }
@@ -119,9 +116,6 @@ function ContactCard({ contact, onDelete, isNew }: { contact: Contact; onDelete:
         {contact.professione && (
           <p className="text-xs text-ndp-muted truncate">{contact.professione}</p>
         )}
-        {contact.telefono && (
-          <p className="text-[11px] text-ndp-muted/60 mt-0.5">{contact.telefono}</p>
-        )}
       </div>
 
       {/* Delete */}
@@ -137,10 +131,13 @@ function ContactCard({ contact, onDelete, isNew }: { contact: Contact; onDelete:
 }
 
 // ─── Add contact form ─────────────────────────────────────────────────────────
-function AddContactForm({ onAdd, onCancel }: { onAdd: (c: Omit<Contact, 'id' | 'aggiuntoAt'>) => void; onCancel: () => void }) {
+function AddContactForm({ onAdd, onCancel, isSubmitting }: {
+  onAdd: (c: { nome: string; cognome: string; professione: string }) => void;
+  onCancel: () => void;
+  isSubmitting: boolean;
+}) {
   const [nome, setNome] = useState('');
   const [cognome, setCognome] = useState('');
-  const [telefono, setTelefono] = useState('');
   const [professione, setProfessione] = useState('');
   const [error, setError] = useState('');
   const firstRef = useRef<HTMLInputElement>(null);
@@ -149,11 +146,12 @@ function AddContactForm({ onAdd, onCancel }: { onAdd: (c: Omit<Contact, 'id' | '
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!nome.trim() || !telefono.trim()) {
-      setError('Nome e telefono sono obbligatori.');
+    if (!nome.trim()) {
+      setError('Il nome è obbligatorio.');
       return;
     }
-    onAdd({ nome: nome.trim(), cognome: cognome.trim(), telefono: telefono.trim(), professione: professione.trim() });
+    setError('');
+    onAdd({ nome: nome.trim(), cognome: cognome.trim(), professione: professione.trim() });
   }
 
   const field = 'w-full text-sm border border-ndp-border rounded-xl px-3.5 py-2.5 bg-white text-ndp-text placeholder-ndp-muted focus:outline-none focus:border-ndp-blue/50 focus:shadow-[0_0_0_3px_rgba(34,0,204,0.06)] transition-all';
@@ -167,22 +165,23 @@ function AddContactForm({ onAdd, onCancel }: { onAdd: (c: Omit<Contact, 'id' | '
         </button>
       </div>
       <div className="grid grid-cols-2 gap-2.5">
-        <input ref={firstRef} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome *" className={field} />
-        <input value={cognome} onChange={(e) => setCognome(e.target.value)} placeholder="Cognome" className={field} />
+        <input ref={firstRef} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome *" className={field} disabled={isSubmitting} />
+        <input value={cognome} onChange={(e) => setCognome(e.target.value)} placeholder="Cognome" className={field} disabled={isSubmitting} />
       </div>
-      <input value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="Telefono *" className={field} type="tel" />
-      <input value={professione} onChange={(e) => setProfessione(e.target.value)} placeholder="Professione / Ruolo" className={field} />
+      <input value={professione} onChange={(e) => setProfessione(e.target.value)} placeholder="Professione / Ruolo" className={field} disabled={isSubmitting} />
       {error && <p className="text-[11px] text-red-500">{error}</p>}
       <div className="flex gap-2 pt-1">
         <button
           type="submit"
-          className="flex-1 bg-ndp-blue text-white text-xs font-bold py-2.5 rounded-xl hover:bg-ndp-blue-dark transition-all shadow-sm"
+          disabled={isSubmitting}
+          className="flex-1 bg-ndp-blue text-white text-xs font-bold py-2.5 rounded-xl hover:bg-ndp-blue-dark transition-all shadow-sm disabled:opacity-60"
         >
-          Aggiungi contatto
+          {isSubmitting ? 'Salvataggio...' : 'Aggiungi contatto'}
         </button>
         <button
           type="button"
           onClick={onCancel}
+          disabled={isSubmitting}
           className="px-4 text-xs text-ndp-muted bg-white border border-ndp-border rounded-xl hover:bg-ndp-bg transition-all"
         >
           Annulla
@@ -193,34 +192,70 @@ function AddContactForm({ onAdd, onCancel }: { onAdd: (c: Omit<Contact, 'id' | '
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
-export default function ReteContatti() {
-  const [contacts, setContacts] = useState<Contact[]>([]);
+export default function ReteContatti({ userId }: { userId: string }) {
+  const [contacts, setContacts] = useState<ContactRow[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [newId, setNewId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(CONTACTS_KEY);
-      if (raw) setContacts(JSON.parse(raw));
-    } catch {}
-  }, []);
+    if (!userId) return;
 
-  function saveContacts(updated: Contact[]) {
-    setContacts(updated);
-    localStorage.setItem(CONTACTS_KEY, JSON.stringify(updated));
-  }
+    async function load() {
+      const data = await getContacts(userId);
 
-  function addContact(data: Omit<Contact, 'id' | 'aggiuntoAt'>) {
-    const id = `c-${Date.now()}`;
-    const newContact: Contact = { ...data, id, aggiuntoAt: new Date().toISOString() };
-    saveContacts([newContact, ...contacts]);
-    setNewId(id);
+      // Migrate from localStorage if Supabase is empty and localStorage has data
+      if (data.length === 0) {
+        try {
+          const raw = localStorage.getItem(LEGACY_KEY);
+          if (raw) {
+            const legacy = JSON.parse(raw) as Array<{ nome: string; cognome: string; telefono?: string; professione: string }>;
+            if (legacy.length > 0) {
+              await migrateFromLocalStorage(userId, legacy);
+              localStorage.removeItem(LEGACY_KEY);
+              const fresh = await getContacts(userId);
+              setContacts(fresh);
+              setIsLoading(false);
+              return;
+            }
+          }
+        } catch { /* ignore localStorage errors */ }
+      }
+
+      setContacts(data);
+      setIsLoading(false);
+    }
+
+    load();
+  }, [userId]);
+
+  async function handleAddContact(data: { nome: string; cognome: string; professione: string }) {
+    setIsSubmitting(true);
+    setFormError(null);
+
+    const { data: newContact, error } = await dbAddContact(userId, data);
+
+    if (error) {
+      setFormError(error);
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (newContact) {
+      setContacts((prev) => [newContact, ...prev]);
+      setNewId(newContact.id);
+      setTimeout(() => setNewId(null), 2000);
+    }
+
     setShowForm(false);
-    setTimeout(() => setNewId(null), 2000);
+    setIsSubmitting(false);
   }
 
-  function deleteContact(id: string) {
-    saveContacts(contacts.filter((c) => c.id !== id));
+  async function handleDeleteContact(id: string) {
+    setContacts((prev) => prev.filter((c) => c.id !== id));
+    await dbDeleteContact(id);
   }
 
   const count = contacts.length;
@@ -232,9 +267,18 @@ export default function ReteContatti() {
   const thisMonth = new Date().getMonth();
   const thisYear = new Date().getFullYear();
   const newThisMonth = contacts.filter((c) => {
-    const d = new Date(c.aggiuntoAt);
+    const d = new Date(c.created_at);
     return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
   }).length;
+
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-2xl border border-ndp-border shadow-sm p-12 text-center">
+        <div className="w-8 h-8 border-2 border-ndp-blue/20 border-t-ndp-blue rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-sm text-ndp-muted">Caricamento rete contatti...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-ndp-border shadow-sm overflow-hidden">
@@ -292,7 +336,7 @@ export default function ReteContatti() {
         {!nextLevel && count > 0 && (
           <div className="mt-4 text-center">
             <span className="text-[11px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 px-3 py-1.5 rounded-xl inline-block">
-              ✦ Livello massimo raggiunto — Power Connector
+              Livello massimo raggiunto — Power Connector
             </span>
           </div>
         )}
@@ -300,9 +344,20 @@ export default function ReteContatti() {
 
       {/* ── Body ── */}
       <div className="px-6 py-5 space-y-4">
+        {/* Error banner */}
+        {formError && (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-xs font-medium px-4 py-2.5 rounded-xl animate-fade-in">
+            <AlertCircle size={13} />
+            {formError}
+            <button onClick={() => setFormError(null)} className="ml-auto p-0.5 hover:bg-red-100 rounded">
+              <X size={12} />
+            </button>
+          </div>
+        )}
+
         {/* Add form or button */}
         {showForm ? (
-          <AddContactForm onAdd={addContact} onCancel={() => setShowForm(false)} />
+          <AddContactForm onAdd={handleAddContact} onCancel={() => { setShowForm(false); setFormError(null); }} isSubmitting={isSubmitting} />
         ) : (
           <button
             onClick={() => setShowForm(true)}
@@ -350,7 +405,7 @@ export default function ReteContatti() {
               <ContactCard
                 key={c.id}
                 contact={c}
-                onDelete={deleteContact}
+                onDelete={handleDeleteContact}
                 isNew={c.id === newId}
               />
             ))}

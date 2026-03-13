@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Send, Loader2, Sparkles, ChevronRight, Star, MapPin, Award, TrendingUp,
-  CheckCircle2, Lock, MessageCircle, ArrowRight, RotateCcw,
+  CheckCircle2, Lock, MessageCircle, ArrowRight, RotateCcw, Users,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { getProfessionalsByIds } from '@/lib/utils';
@@ -241,6 +241,25 @@ export default function ChatInterface({ chatId, initialQuery, onOpenProfessional
     try { return JSON.parse(`[${match[1]}]`); } catch { return []; }
   };
 
+  const extractBridgeIds = (text: string): string[] => {
+    const match = text.match(/BRIDGE_IDS:\[([^\]]*)\]/);
+    if (!match) return [];
+    try { return JSON.parse(`[${match[1]}]`); } catch { return []; }
+  };
+
+  const extractIntent = (text: string): string => {
+    const match = text.match(/^INTENT:(\w+)/m);
+    return match?.[1] ?? 'request';
+  };
+
+  const cleanMarkers = (text: string): string => {
+    return text
+      .replace(/^INTENT:\w+\n?/m, '')
+      .replace(/MATCHED_IDS:\[([^\]]*)\]/g, '')
+      .replace(/BRIDGE_IDS:\[([^\]]*)\]/g, '')
+      .trim();
+  };
+
   const sendMessage = async (text?: string) => {
     const content = text || input.trim();
     if (!content || isLoading) return;
@@ -269,7 +288,10 @@ export default function ChatInterface({ chatId, initialQuery, onOpenProfessional
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages.map((m) => ({ role: m.role, content: m.content })) }),
+        body: JSON.stringify({
+          messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+          userId: user?.id ?? null,
+        }),
       });
 
       if (!response.ok) throw new Error('API error');
@@ -283,16 +305,19 @@ export default function ChatInterface({ chatId, initialQuery, onOpenProfessional
         const { done, value } = await reader.read();
         if (done) break;
         fullText += decoder.decode(value, { stream: true });
+        const displayText = cleanMarkers(fullText);
         setMessages((prev) => {
           const updated = [...prev];
-          updated[updated.length - 1] = { role: 'assistant', content: fullText };
+          updated[updated.length - 1] = { role: 'assistant', content: displayText };
           return updated;
         });
       }
 
       const matchedIds = extractMatchedIds(fullText);
-      const cleanContent = fullText.replace(/MATCHED_IDS:\[([^\]]*)\]/g, '').trim();
-      const finalMessages: ChatMessage[] = [...newMessages, { role: 'assistant', content: cleanContent, matchedIds }];
+      const bridgeIds = extractBridgeIds(fullText);
+      const intent = extractIntent(fullText);
+      const cleanContent = cleanMarkers(fullText);
+      const finalMessages: ChatMessage[] = [...newMessages, { role: 'assistant', content: cleanContent, matchedIds, bridgeIds, intent }];
       setMessages(finalMessages);
       persistMessages(finalMessages);
     } catch {
@@ -447,6 +472,8 @@ export default function ChatInterface({ chatId, initialQuery, onOpenProfessional
           {messages.map((msg, i) => {
             const professionals = msg.role === 'assistant' && msg.matchedIds?.length
               ? getProfessionalsByIds(msg.matchedIds) : [];
+            const bridgeProfessionals = msg.role === 'assistant' && msg.bridgeIds?.length
+              ? getProfessionalsByIds(msg.bridgeIds) : [];
             const isLast = i === messages.length - 1;
 
             return (
@@ -494,6 +521,38 @@ export default function ChatInterface({ chatId, initialQuery, onOpenProfessional
                             ))}
                           </div>
                           {isGuest && isLast && <GuestTeaserBanner />}
+                        </div>
+                      )}
+
+                      {bridgeProfessionals.length > 0 && (
+                        <div className="animate-slide-up space-y-3 mt-3">
+                          <div className="flex items-center gap-2 px-1">
+                            <Users size={13} className="text-amber-500" />
+                            <span className="text-xs font-semibold text-ndp-text">
+                              Ponte relazionale — potrebbe conoscere qualcuno
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-1 gap-3">
+                            {bridgeProfessionals.map((p) => (
+                              <div
+                                key={p.id}
+                                className="bg-amber-50/50 rounded-2xl border border-amber-200/50 p-4 cursor-pointer hover:shadow-md transition-all"
+                                onClick={() => !isGuest && onOpenProfessional?.(p)}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm shrink-0">
+                                    {getInitials(p.name)}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-bold text-sm text-ndp-text truncate">{p.name}</h4>
+                                    <p className="text-xs text-ndp-muted truncate">{p.profession} · {p.city}</p>
+                                    <p className="text-[11px] text-amber-700 mt-1">Potrebbe conoscere qualcuno nel settore richiesto</p>
+                                  </div>
+                                  {!isGuest && <ChevronRight size={14} className="text-amber-400 mt-1 shrink-0" />}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>

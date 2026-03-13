@@ -335,6 +335,28 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['event_registrations']['Insert']>;
         Relationships: [];
       };
+      private_contacts: {
+        Row: {
+          id: string;
+          user_id: string;
+          nome: string;
+          cognome: string;
+          professione: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          nome: string;
+          cognome?: string;
+          professione?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['private_contacts']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

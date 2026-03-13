@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import AiCopilotButton from './AiCopilotButton';
-import { ChevronDown, ChevronUp, CheckCircle2, Circle, Plus, Trash2, Camera, User, Sparkles, Wand2, ListChecks, FileText, MessageSquare } from 'lucide-react';
+import { ChevronDown, ChevronUp, CheckCircle2, Circle, Plus, Trash2, Camera, User, Sparkles, Wand2, ListChecks, FileText, MessageSquare, Users } from 'lucide-react';
 import { WizardProfile } from '@/lib/types';
 import { getWizardProfile, saveWizardProfile } from '@/lib/db/wizard';
+import ReteContatti from './ReteContatti';
 
 const SECTIONS = [
   { id: 'identity', label: 'Identità professionale', step: 1 },
@@ -14,6 +15,7 @@ const SECTIONS = [
   { id: 'references', label: 'Referenze', step: 5 },
   { id: 'powerTeam', label: 'Power Team', step: 6 },
   { id: 'personal', label: 'Info personali', step: 7 },
+  { id: 'contacts', label: 'Rete contatti (opzionale)', step: 8 },
 ];
 
 function SectionHeader({
@@ -218,12 +220,14 @@ export default function ProfileWizard({ onSave, userId }: { onSave?: (profile: W
       case 'references': return !!(profile.goodReference && profile.badReference);
       case 'powerTeam': return profile.powerTeam.length > 0;
       case 'personal': return !!profile.personalInfo;
+      case 'contacts': return true; // optional section, always "complete"
       default: return false;
     }
   };
 
-  const completedSections = SECTIONS.filter((s) => isSectionComplete(s.id)).length;
-  const completionPct = Math.round((completedSections / SECTIONS.length) * 100);
+  const scorableSections = SECTIONS.filter((s) => s.id !== 'contacts');
+  const completedSections = scorableSections.filter((s) => isSectionComplete(s.id)).length;
+  const completionPct = Math.round((completedSections / scorableSections.length) * 100);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -254,7 +258,7 @@ export default function ProfileWizard({ onSave, userId }: { onSave?: (profile: W
         <div className="h-2.5 bg-ndp-bg rounded-full overflow-hidden">
           <div className="h-full bg-gradient-to-r from-ndp-gold to-ndp-gold-dark rounded-full transition-all duration-500" style={{ width: `${completionPct}%` }} />
         </div>
-        <p className="text-xs text-ndp-muted mt-2">{completedSections}/{SECTIONS.length} sezioni completate</p>
+        <p className="text-xs text-ndp-muted mt-2">{completedSections}/{scorableSections.length} sezioni completate</p>
       </div>
 
       {/* Photo + Name card */}
@@ -368,6 +372,17 @@ export default function ProfileWizard({ onSave, userId }: { onSave?: (profile: W
                   section="personal" fieldName="Info personali" rows={5} placeholder="Raccontati: cosa fai nel tempo libero..."
                   aiActions={[{ label: 'Rendi più memorabile', icon: <Wand2 size={11} />, action: 'Rendi le info personali più memorabili e simpatiche per il networking' }]}
                 />
+              )}
+              {section.id === 'contacts' && (
+                <>
+                  <div className="flex items-start gap-2 bg-ndp-blue/5 rounded-xl p-4 border border-ndp-blue/10 mb-2">
+                    <Users size={13} className="text-ndp-blue mt-0.5 shrink-0" />
+                    <p className="text-xs text-ndp-muted leading-relaxed">
+                      <span className="font-semibold text-ndp-blue">Opzionale:</span> Aggiungi contatti alla tua rete. Puoi completare questo passaggio in qualsiasi momento dalla dashboard.
+                    </p>
+                  </div>
+                  <ReteContatti userId={userId} />
+                </>
               )}
             </div>
           )}

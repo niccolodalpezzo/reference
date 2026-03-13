@@ -6,6 +6,8 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   matchedIds?: string[];
+  bridgeIds?: string[];
+  intent?: string;
 }
 
 export interface SavedChat {
